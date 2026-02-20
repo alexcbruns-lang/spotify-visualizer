@@ -7,54 +7,52 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root { --c1: #ff006e; --c2: #8338ec; --c3: #06ffd8; --c4: #ffbe0b; --bg: #000008; }
-    html, body { width:100%; height:100%; background:var(--bg); overflow:hidden; font-family:'Orbitron',monospace; color:#fff; cursor:none; }
-    .cursor { position:fixed; width:12px; height:12px; background:var(--c3); border-radius:50%; pointer-events:none; z-index:9999; mix-blend-mode:screen; box-shadow:0 0 20px var(--c3); }
-    canvas { position:fixed; top:0; left:0; width:100%; height:100%; z-index:1; }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    html, body { width:100%; height:100%; background:#000; overflow:hidden; font-family:'Orbitron',monospace; color:#fff; cursor:none; }
+    .cursor { position:fixed; width:10px; height:10px; border-radius:50%; pointer-events:none; z-index:9999; mix-blend-mode:screen; transition:background 0.5s; }
+    canvas { position:fixed; top:0; left:0; width:100%; height:100%; }
+    #bg-canvas { z-index:1; }
+    #main-canvas { z-index:2; }
+    #fx-canvas { z-index:3; pointer-events:none; }
 
     /* LOGIN */
-    #login-screen { position:fixed; inset:0; z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; background:var(--bg); }
-    #login-screen::before { content:''; position:absolute; inset:0; background: radial-gradient(ellipse 80% 50% at 20% 50%, rgba(131,56,236,0.15) 0%, transparent 60%), radial-gradient(ellipse 60% 40% at 80% 50%, rgba(255,0,110,0.12) 0%, transparent 60%); }
-    .login-logo { font-size:clamp(2rem,6vw,5rem); font-weight:900; letter-spacing:0.2em; text-transform:uppercase; background:linear-gradient(135deg,var(--c3),var(--c2),var(--c1)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:0.3em; position:relative; z-index:1; }
+    #login-screen { position:fixed; inset:0; z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#000; }
+    #login-screen::before { content:''; position:absolute; inset:0; background: radial-gradient(ellipse 80% 50% at 20% 50%,rgba(131,56,236,0.15) 0%,transparent 60%), radial-gradient(ellipse 60% 40% at 80% 50%,rgba(255,0,110,0.12) 0%,transparent 60%); }
+    .login-logo { font-size:clamp(2rem,6vw,5rem); font-weight:900; letter-spacing:0.2em; text-transform:uppercase; background:linear-gradient(135deg,#06ffd8,#8338ec,#ff006e); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:0.3em; position:relative; z-index:1; }
     .login-sub { font-family:'Share Tech Mono',monospace; font-size:clamp(0.7rem,1.5vw,1rem); color:rgba(255,255,255,0.4); letter-spacing:0.3em; text-transform:uppercase; margin-bottom:4rem; position:relative; z-index:1; }
-    .login-btn { position:relative; z-index:1; padding:1.1rem 3.5rem; font-family:'Orbitron',monospace; font-size:0.9rem; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:#000; background:var(--c3); border:none; cursor:pointer!important; clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%); transition:all 0.2s; -webkit-appearance:none; appearance:none; }
-    .login-btn:hover { background:#fff; transform:scale(1.05); box-shadow:0 0 40px var(--c3); }
-    .scan-lines { position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px); pointer-events:none; z-index:200; }
+    .login-btn { position:relative; z-index:1; padding:1.1rem 3.5rem; font-family:'Orbitron',monospace; font-size:0.9rem; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:#000; background:#06ffd8; border:none; cursor:pointer; clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%); transition:all 0.2s; }
+    .login-btn:hover { background:#fff; transform:scale(1.05); box-shadow:0 0 40px #06ffd8; }
+    .scan-lines { position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.04) 2px,rgba(0,0,0,0.04) 4px); pointer-events:none; z-index:20; }
 
-    /* UI */
-    #ui { position:fixed; z-index:50; inset:0; pointer-events:none; display:none; }
-    #track-info { position:absolute; bottom:2.5rem; left:2.5rem; max-width:380px; }
-    #track-name { font-size:clamp(1rem,2.5vw,1.6rem); font-weight:700; letter-spacing:0.05em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 0 30px currentColor; }
+    /* UI OVERLAY */
+    #ui { position:fixed; z-index:15; inset:0; pointer-events:none; display:none; }
+    #track-info { position:absolute; bottom:2.5rem; left:2.5rem; max-width:420px; }
+    #track-name { font-size:clamp(1rem,2.5vw,1.7rem); font-weight:700; letter-spacing:0.05em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 0 30px currentColor; transition:color 2s; }
     #artist-name { font-family:'Share Tech Mono',monospace; font-size:clamp(0.7rem,1.2vw,0.9rem); color:rgba(255,255,255,0.5); letter-spacing:0.2em; margin-top:0.3rem; }
-    #stats { position:absolute; top:2rem; right:2.5rem; text-align:right; font-family:'Share Tech Mono',monospace; font-size:0.75rem; color:rgba(255,255,255,0.35); letter-spacing:0.15em; line-height:1.8; }
+    #stats { position:absolute; top:2rem; right:2.5rem; text-align:right; font-family:'Share Tech Mono',monospace; font-size:0.72rem; color:rgba(255,255,255,0.3); letter-spacing:0.15em; line-height:2; }
     .stat-val { color:rgba(255,255,255,0.7); }
-    #progress-wrap { position:absolute; bottom:0; left:0; right:0; height:3px; background:rgba(255,255,255,0.05); }
-    #progress-bar { height:100%; background:linear-gradient(90deg,var(--c2),var(--c1)); width:0%; transition:width 1s linear; box-shadow:0 0 10px var(--c1); }
-    #mode-tag { position:absolute; top:2rem; left:2.5rem; font-family:'Share Tech Mono',monospace; font-size:0.7rem; letter-spacing:0.25em; color:var(--c3); opacity:0.6; }
-    #album-art { position:absolute; bottom:2.5rem; right:2.5rem; width:80px; height:80px; border:1px solid rgba(255,255,255,0.1); opacity:0.7; transition:opacity 0.5s; }
+    #progress-wrap { position:absolute; bottom:0; left:0; right:0; height:2px; background:rgba(255,255,255,0.05); }
+    #progress-bar { height:100%; width:0%; transition:width 1s linear; }
+    #mode-tag { position:absolute; top:2rem; left:2.5rem; font-family:'Share Tech Mono',monospace; font-size:0.65rem; letter-spacing:0.25em; opacity:0.5; transition:color 2s; }
+    #album-art { position:absolute; bottom:2.5rem; right:2.5rem; width:80px; height:80px; border:1px solid rgba(255,255,255,0.1); opacity:0.7; transition:opacity 0.5s; object-fit:cover; }
     #album-art:hover { opacity:1; }
-
-    /* AI thinking indicator */
-    #ai-thinking { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:'Share Tech Mono',monospace; font-size:0.8rem; letter-spacing:0.3em; color:rgba(255,255,255,0.5); display:none; animation:pulse 1.2s infinite; }
-    @keyframes pulse { 0%,100%{opacity:0.3} 50%{opacity:1} }
+    #ai-badge { position:absolute; bottom:2.5rem; right:calc(80px + 1.5rem); font-family:'Share Tech Mono',monospace; font-size:0.6rem; letter-spacing:0.2em; color:rgba(255,255,255,0.3); writing-mode:vertical-rl; text-orientation:mixed; }
 
     /* SONG SPLASH */
-    #song-splash { position:fixed; inset:0; z-index:80; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; opacity:0; transition:opacity 0.6s ease; }
+    #song-splash { position:fixed; inset:0; z-index:80; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; opacity:0; transition:opacity 0.7s ease; }
     #song-splash.visible { opacity:1; }
-    #splash-track { font-size:clamp(1.8rem,5vw,4.5rem); font-weight:900; letter-spacing:0.08em; text-transform:uppercase; text-align:center; line-height:1.1; text-shadow:0 0 60px currentColor, 0 0 120px currentColor; max-width:85vw; transform:translateY(20px); transition:transform 0.8s cubic-bezier(0.16,1,0.3,1); }
-    #song-splash.visible #splash-track { transform:translateY(0); }
-    #splash-artist { font-family:'Share Tech Mono',monospace; font-size:clamp(0.8rem,2vw,1.2rem); letter-spacing:0.4em; text-transform:uppercase; color:rgba(255,255,255,0.55); margin-top:1rem; transform:translateY(15px); transition:transform 0.9s cubic-bezier(0.16,1,0.3,1) 0.1s; }
+    #splash-track { font-size:clamp(2rem,6vw,5.5rem); font-weight:900; letter-spacing:0.06em; text-transform:uppercase; text-align:center; line-height:1.05; text-shadow:0 0 80px currentColor, 0 0 160px currentColor; max-width:88vw; transform:translateY(30px) scale(0.95); transition:transform 0.9s cubic-bezier(0.16,1,0.3,1); }
+    #song-splash.visible #splash-track { transform:translateY(0) scale(1); }
+    #splash-artist { font-family:'Share Tech Mono',monospace; font-size:clamp(0.9rem,2.2vw,1.3rem); letter-spacing:0.45em; text-transform:uppercase; color:rgba(255,255,255,0.5); margin-top:1.2rem; transform:translateY(20px); transition:transform 1s cubic-bezier(0.16,1,0.3,1) 0.12s; }
     #song-splash.visible #splash-artist { transform:translateY(0); }
-    #splash-vibe { font-family:'Share Tech Mono',monospace; font-size:clamp(0.6rem,1.2vw,0.85rem); letter-spacing:0.5em; text-transform:uppercase; margin-top:2rem; opacity:0.5; transform:translateY(10px); transition:transform 1s cubic-bezier(0.16,1,0.3,1) 0.2s; max-width:70vw; text-align:center; line-height:1.8; }
+    #splash-vibe { font-family:'Share Tech Mono',monospace; font-size:clamp(0.65rem,1.3vw,0.9rem); letter-spacing:0.5em; text-transform:uppercase; margin-top:2.2rem; opacity:0.45; transform:translateY(15px); transition:transform 1.1s cubic-bezier(0.16,1,0.3,1) 0.25s; max-width:65vw; text-align:center; line-height:2; }
     #song-splash.visible #splash-vibe { transform:translateY(0); }
 
-    /* DISSOLVE */
-    #dissolve { position:fixed; inset:0; z-index:75; background:#000; opacity:0; pointer-events:none; transition:opacity 0.8s ease; }
-    #dissolve.fade-in { opacity:1; }
+    #dissolve { position:fixed; inset:0; z-index:75; background:#000; opacity:0; pointer-events:none; transition:opacity 0.9s ease; }
+    #dissolve.active { opacity:1; }
 
-    #fs-btn { position:fixed; bottom:2.5rem; right:calc(80px + 3.5rem); z-index:60; background:none; border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.4); font-family:'Share Tech Mono',monospace; font-size:0.65rem; letter-spacing:0.15em; padding:0.4rem 0.8rem; cursor:pointer; transition:all 0.2s; display:none; pointer-events:all; }
-    #fs-btn:hover { border-color:var(--c3); color:var(--c3); }
+    #fs-btn { position:fixed; bottom:2.5rem; right:calc(80px + 3.5rem); z-index:60; background:none; border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.35); font-family:'Share Tech Mono',monospace; font-size:0.62rem; letter-spacing:0.15em; padding:0.4rem 0.8rem; cursor:pointer; transition:all 0.2s; display:none; pointer-events:all; }
+    #fs-btn:hover { border-color:#06ffd8; color:#06ffd8; }
   </style>
 </head>
 <body>
@@ -62,15 +60,15 @@
 <div class="scan-lines"></div>
 <canvas id="bg-canvas"></canvas>
 <canvas id="main-canvas"></canvas>
+<canvas id="fx-canvas"></canvas>
 
 <div id="login-screen">
   <div class="login-logo">SYNTHWAVE</div>
-  <div class="login-sub">Spotify Visual Experience</div>
+  <div class="login-sub">AI-Powered Spotify Visualizer</div>
   <button id="login-btn" class="login-btn">Connect Spotify</button>
 </div>
 
 <div id="dissolve"></div>
-
 <div id="song-splash">
   <div id="splash-track"></div>
   <div id="splash-artist"></div>
@@ -78,476 +76,798 @@
 </div>
 
 <div id="ui">
-  <div id="mode-tag">LIVE VISUAL ENGINE</div>
-  <div id="ai-thinking">✦ AI READING SONG...</div>
+  <div id="mode-tag">AI VISUAL ENGINE</div>
   <div id="stats">
-    BPM <span class="stat-val" id="stat-bpm">—</span><br>
-    ENERGY <span class="stat-val" id="stat-energy">—</span><br>
-    VIBE <span class="stat-val" id="stat-mood">—</span>
+    VIBE <span class="stat-val" id="stat-mood">—</span><br>
+    BG <span class="stat-val" id="stat-bg">—</span><br>
+    FX <span class="stat-val" id="stat-fx">—</span>
   </div>
   <div id="track-info">
     <div id="track-name">—</div>
     <div id="artist-name">—</div>
   </div>
+  <div id="ai-badge">AI VJ</div>
   <img id="album-art" src="" alt="" />
   <div id="progress-wrap"><div id="progress-bar"></div></div>
 </div>
 <button id="fs-btn">⛶ FULLSCREEN</button>
 
 <script>
-// ─── CONFIG ───────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════════════
 const CLIENT_ID = 'c4a8270f8bc6453490fc8bf4b9de5c42';
-// API key handled server-side via /api/theme
 const REDIRECT_URI = window.location.origin + '/callback';
 const SCOPES = ['user-read-currently-playing','user-read-playback-state','streaming','user-modify-playback-state'].join(' ');
 
-// ─── PKCE AUTH ────────────────────────────────────────────────────────────────
-function generateRandomString(n) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const arr = new Uint8Array(n); crypto.getRandomValues(arr);
-  return Array.from(arr).map(x => chars[x % chars.length]).join('');
-}
-async function generateCodeChallenge(v) {
-  const data = new TextEncoder().encode(v);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
-}
-async function redirectToSpotify() {
-  const verifier = generateRandomString(64);
-  const challenge = await generateCodeChallenge(verifier);
-  localStorage.setItem('pkce_verifier', verifier);
-  const params = new URLSearchParams({ client_id:CLIENT_ID, response_type:'code', redirect_uri:REDIRECT_URI, scope:SCOPES, code_challenge_method:'S256', code_challenge:challenge, show_dialog:true });
-  window.location.href = 'https://accounts.spotify.com/authorize?' + params;
-}
-async function exchangeCodeForToken(code) {
-  const verifier = localStorage.getItem('pkce_verifier');
-  const res = await fetch('https://accounts.spotify.com/api/token', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:new URLSearchParams({ client_id:CLIENT_ID, grant_type:'authorization_code', code, redirect_uri:REDIRECT_URI, code_verifier:verifier }) });
-  const data = await res.json();
-  if (data.access_token) { localStorage.setItem('sp_token',data.access_token); localStorage.setItem('sp_token_ts',Date.now()); if(data.refresh_token) localStorage.setItem('sp_refresh_token',data.refresh_token); localStorage.removeItem('pkce_verifier'); return data.access_token; }
-  return null;
-}
-async function refreshAccessToken() {
-  const rt = localStorage.getItem('sp_refresh_token'); if(!rt) return null;
-  const res = await fetch('https://accounts.spotify.com/api/token', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:new URLSearchParams({ client_id:CLIENT_ID, grant_type:'refresh_token', refresh_token:rt }) });
-  const data = await res.json();
-  if (data.access_token) { localStorage.setItem('sp_token',data.access_token); localStorage.setItem('sp_token_ts',Date.now()); return data.access_token; }
-  return null;
-}
-function getStoredToken() {
-  const t = localStorage.getItem('sp_token'), ts = parseInt(localStorage.getItem('sp_token_ts')||'0');
-  return (t && Date.now()-ts < 3500000) ? t : null;
-}
+// ═══════════════════════════════════════════════════════════════════
+// PKCE AUTH
+// ═══════════════════════════════════════════════════════════════════
+function rndStr(n){const c='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',a=new Uint8Array(n);crypto.getRandomValues(a);return Array.from(a).map(x=>c[x%c.length]).join('');}
+async function codeChallenge(v){const d=new TextEncoder().encode(v),h=await crypto.subtle.digest('SHA-256',d);return btoa(String.fromCharCode(...new Uint8Array(h))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
+async function redirectToSpotify(){const v=rndStr(64),ch=await codeChallenge(v);localStorage.setItem('pkce_v',v);window.location.href='https://accounts.spotify.com/authorize?'+new URLSearchParams({client_id:CLIENT_ID,response_type:'code',redirect_uri:REDIRECT_URI,scope:SCOPES,code_challenge_method:'S256',code_challenge:ch,show_dialog:true});}
+async function exchangeToken(code){const v=localStorage.getItem('pkce_v');const r=await fetch('https://accounts.spotify.com/api/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:CLIENT_ID,grant_type:'authorization_code',code,redirect_uri:REDIRECT_URI,code_verifier:v})});const d=await r.json();if(d.access_token){localStorage.setItem('sp_t',d.access_token);localStorage.setItem('sp_ts',Date.now());if(d.refresh_token)localStorage.setItem('sp_rt',d.refresh_token);localStorage.removeItem('pkce_v');return d.access_token;}return null;}
+async function refreshToken(){const rt=localStorage.getItem('sp_rt');if(!rt)return null;const r=await fetch('https://accounts.spotify.com/api/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:CLIENT_ID,grant_type:'refresh_token',refresh_token:rt})});const d=await r.json();if(d.access_token){localStorage.setItem('sp_t',d.access_token);localStorage.setItem('sp_ts',Date.now());return d.access_token;}return null;}
+function storedToken(){const t=localStorage.getItem('sp_t'),ts=parseInt(localStorage.getItem('sp_ts')||'0');return(t&&Date.now()-ts<3500000)?t:null;}
 
-// ─── CURSOR ───────────────────────────────────────────────────────────────────
-const cursor = document.getElementById('cursor');
-document.addEventListener('mousemove', e => { cursor.style.left=(e.clientX-6)+'px'; cursor.style.top=(e.clientY-6)+'px'; });
+// ═══════════════════════════════════════════════════════════════════
+// CANVAS
+// ═══════════════════════════════════════════════════════════════════
+const bgC=document.getElementById('bg-canvas'),bgX=bgC.getContext('2d');
+const mC=document.getElementById('main-canvas'),mX=mC.getContext('2d');
+const fxC=document.getElementById('fx-canvas'),fxX=fxC.getContext('2d');
+function resize(){bgC.width=mC.width=fxC.width=window.innerWidth;bgC.height=mC.height=fxC.height=window.innerHeight;}
+resize();window.addEventListener('resize',resize);
 
-// ─── CANVAS ───────────────────────────────────────────────────────────────────
-const bgCanvas = document.getElementById('bg-canvas'), bgCtx = bgCanvas.getContext('2d');
-const canvas = document.getElementById('main-canvas'), ctx = canvas.getContext('2d');
-function resize() { bgCanvas.width=canvas.width=window.innerWidth; bgCanvas.height=canvas.height=window.innerHeight; }
-resize(); window.addEventListener('resize', resize);
-
-// ─── AI THEME ENGINE ─────────────────────────────────────────────────────────
-// Theme object shape:
-// { label, palette[4], bgColor, particleShape, geoSides[], waveAmp, beatFlash, orbIntensity, gridColor, symbols[], splashDesc }
-// symbols: array of shape names our renderer understands: 'heart','star','circle','triangle','diamond','lightning','note','infinity','flower','spiral'
-
-const DEFAULT_THEME = {
-  label:'LOADING', palette:['#ff006e','#8338ec','#06ffd8','#ffbe0b'],
-  bgColor:'#000008', particleShape:'trail', geoSides:[4,6,8],
+// ═══════════════════════════════════════════════════════════════════
+// THEME STATE
+// ═══════════════════════════════════════════════════════════════════
+let T = {
+  label:'INITIALIZING', splashDesc:'',
+  palette:['#ff006e','#8338ec','#06ffd8','#ffbe0b'],
+  bgColor:'#000008',
+  backgroundMode:'starfield', backgroundIntensity:0.5,
+  particleMode:'trails', particleCount:100, particleSpeed:1.0,
+  geometryMode:'polygons', geometryComplexity:0.5,
+  cameraEffects:[], beatEffect:'ripple',
+  symbols:[], symbolSpawnRate:0.1,
   waveAmp:1.0, beatFlash:0.15, orbIntensity:0.1,
-  gridColor:'rgba(255,255,255,0.025)', symbols:[], splashDesc:''
+  gridColor:'rgba(255,255,255,0.02)',
+  energy:0.5, chaos:0.5
 };
+let aiCache={};
 
-let currentTheme = {...DEFAULT_THEME};
-let aiThemeCache = {}; // trackId -> theme
+function pc(i){return T.palette[i%T.palette.length];}
+function hex2rgb(h){return{r:parseInt(h.slice(1,3),16),g:parseInt(h.slice(3,5),16),b:parseInt(h.slice(5,7),16)};}
+function rgba(h,a=1){const{r,g,b}=hex2rgb(h);return`rgba(${r},${g},${b},${a})`;}
 
-async function fetchAITheme(trackName, artistName, genres) {
-  // Calls our secure Vercel serverless function — API key never exposed in browser
-  try {
-    const res = await fetch('/api/theme', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ trackName, artistName, genres })
-    });
-    if (!res.ok) throw new Error('API error ' + res.status);
-    const theme = await res.json();
-    return {
-      label: theme.label || 'UNKNOWN VIBE',
-      palette: Array.isArray(theme.palette) && theme.palette.length===4 ? theme.palette : DEFAULT_THEME.palette,
-      bgColor: theme.bgColor || '#000008',
-      particleShape: theme.particleShape || 'trail',
-      geoSides: Array.isArray(theme.geoSides) ? theme.geoSides : [4,6,8],
-      waveAmp: typeof theme.waveAmp==='number' ? Math.min(2,Math.max(0.4,theme.waveAmp)) : 1.0,
-      beatFlash: typeof theme.beatFlash==='number' ? Math.min(0.35,Math.max(0.05,theme.beatFlash)) : 0.15,
-      orbIntensity: typeof theme.orbIntensity==='number' ? theme.orbIntensity : 0.1,
-      gridColor: theme.gridColor || 'rgba(255,255,255,0.025)',
-      symbols: Array.isArray(theme.symbols) ? theme.symbols.slice(0,3) : [],
-      splashDesc: theme.splashDesc || '',
-    };
-  } catch(e) {
-    console.error('[AI] Theme fetch error:', e);
-    return null;
+// ═══════════════════════════════════════════════════════════════════
+// MUSIC STATE
+// ═══════════════════════════════════════════════════════════════════
+let S={bpm:120,energy:0.5,beatInterval:500,lastBeat:0,progress:0,duration:1,analysisStart:0};
+let SM={energy:0.5,bpm:120,beatPulse:0,chaos:0.5};
+
+// Camera state
+let CAM={zoom:1,rotation:0,shakeX:0,shakeY:0,breathPhase:0};
+
+// ═══════════════════════════════════════════════════════════════════
+// CURSOR
+// ═══════════════════════════════════════════════════════════════════
+const curEl=document.getElementById('cursor');
+document.addEventListener('mousemove',e=>{curEl.style.left=(e.clientX-5)+'px';curEl.style.top=(e.clientY-5)+'px';});
+
+// ═══════════════════════════════════════════════════════════════════
+// BACKGROUND RENDERERS
+// ═══════════════════════════════════════════════════════════════════
+
+// --- Starfield ---
+let stars=[];
+function initStars(){stars=Array.from({length:300},()=>({x:(Math.random()-0.5)*2,y:(Math.random()-0.5)*2,z:Math.random(),blink:Math.random()*Math.PI*2,colorIdx:Math.floor(Math.random()*4)}));}
+initStars();
+function drawStarfield(t,energy){
+  const w=bgC.width,h=bgC.height,cx=w/2,cy=h/2;
+  bgX.fillStyle=T.bgColor; bgX.fillRect(0,0,w,h);
+  for(const s of stars){
+    s.z-=0.0008*(1+energy*3)*T.backgroundIntensity;
+    if(s.z<=0)s.z=1;
+    const px=cx+(s.x/s.z)*cx, py=cy+(s.y/s.z)*cy;
+    if(px<0||px>w||py<0||py>h)continue;
+    const size=(1-s.z)*4+0.5;
+    const bright=Math.sin(t*0.002+s.blink)*0.3+0.7;
+    bgX.beginPath(); bgX.arc(px,py,size,0,Math.PI*2);
+    bgX.fillStyle=rgba(pc(s.colorIdx),bright*T.backgroundIntensity);
+    bgX.shadowBlur=size*3; bgX.shadowColor=pc(s.colorIdx);
+    bgX.fill(); bgX.shadowBlur=0;
   }
 }
 
-// ─── COLOR HELPERS ────────────────────────────────────────────────────────────
-function pc(i) { return currentTheme.palette[i % currentTheme.palette.length]; }
-function hexToRGB(hex) { return { r:parseInt(hex.slice(1,3),16), g:parseInt(hex.slice(3,5),16), b:parseInt(hex.slice(5,7),16) }; }
-function rgbStr(hex,a=1) { const {r,g,b}=hexToRGB(hex); return `rgba(${r},${g},${b},${a})`; }
-
-// ─── STATE ────────────────────────────────────────────────────────────────────
-let state = { bpm:120, energy:0.5, beatInterval:500, lastBeat:0, trackId:null, progress:0, duration:1, trackName:'', artistName:'', albumArt:'', analysisStart:0 };
-let smooth = { energy:0.5, bpm:120, beatPulse:0 };
-
-// ─── SPECIAL SYMBOLS ─────────────────────────────────────────────────────────
-let floatingSymbols = [];
-
-class FloatingSymbol {
-  constructor(type) {
-    this.type = type;
-    this.x = Math.random() * canvas.width;
-    this.y = canvas.height + 50;
-    this.size = Math.random() * 30 + 15;
-    this.vx = (Math.random()-0.5) * 0.8;
-    this.vy = -(Math.random() * 1.2 + 0.4);
-    this.rot = Math.random() * Math.PI * 2;
-    this.rotSpeed = (Math.random()-0.5) * 0.03;
-    this.life = 1;
-    this.decay = Math.random() * 0.003 + 0.001;
-    this.colorIdx = Math.floor(Math.random()*4);
-    this.pulsePhase = Math.random() * Math.PI * 2;
-  }
-  update() {
-    this.x += this.vx; this.y += this.vy;
-    this.rot += this.rotSpeed; this.life -= this.decay;
-  }
-  draw(ctx, t) {
-    if (this.life <= 0) return;
-    const pulse = 1 + Math.sin(t*0.002 + this.pulsePhase)*0.15;
-    const s = this.size * pulse;
-    ctx.save();
-    ctx.translate(this.x, this.y); ctx.rotate(this.rot);
-    ctx.globalAlpha = this.life * 0.7;
-    ctx.fillStyle = pc(this.colorIdx);
-    ctx.strokeStyle = pc(this.colorIdx);
-    ctx.shadowBlur = 20; ctx.shadowColor = pc(this.colorIdx);
-    drawSymbolShape(ctx, this.type, s);
-    ctx.shadowBlur = 0; ctx.globalAlpha = 1;
-    ctx.restore();
+// --- Tunnel ---
+let tunnelRings=[];
+function initTunnel(){tunnelRings=Array.from({length:24},(_,i)=>({z:i/24,sides:Math.floor(Math.random()*4)+4,rot:Math.random()*Math.PI*2,colorIdx:i%4}));}
+initTunnel();
+function drawTunnel(t,energy){
+  const w=bgC.width,h=bgC.height,cx=w/2,cy=h/2;
+  bgX.fillStyle=T.bgColor; bgX.fillRect(0,0,w,h);
+  const speed=0.004*(1+energy*3)*T.backgroundIntensity;
+  for(const ring of tunnelRings){
+    ring.z-=speed; ring.rot+=0.01*(1+T.chaos);
+    if(ring.z<0){ring.z+=1;ring.colorIdx=Math.floor(Math.random()*4);}
+    const size=(1-ring.z)*Math.min(w,h)*0.75;
+    const alpha=ring.z*T.backgroundIntensity*0.8;
+    bgX.save(); bgX.translate(cx,cy); bgX.rotate(ring.rot);
+    bgX.beginPath();
+    for(let i=0;i<=ring.sides;i++){const a=(i/ring.sides)*Math.PI*2;i===0?bgX.moveTo(Math.cos(a)*size,Math.sin(a)*size):bgX.lineTo(Math.cos(a)*size,Math.sin(a)*size);}
+    bgX.strokeStyle=rgba(pc(ring.colorIdx),alpha);
+    bgX.lineWidth=2; bgX.shadowBlur=15; bgX.shadowColor=pc(ring.colorIdx);
+    bgX.stroke(); bgX.shadowBlur=0; bgX.restore();
   }
 }
 
-function drawSymbolShape(ctx, type, s) {
-  ctx.lineWidth = 2;
-  switch(type) {
-    case 'heart':
-      ctx.beginPath();
-      ctx.moveTo(0, -s*0.3);
-      ctx.bezierCurveTo(s*0.5, -s*0.8, s*1.0, s*0.1, 0, s*0.7);
-      ctx.bezierCurveTo(-s*1.0, s*0.1, -s*0.5, -s*0.8, 0, -s*0.3);
-      ctx.fill(); break;
-    case 'star':
-      ctx.beginPath();
-      for(let i=0;i<5;i++){
-        const a1=(i*4*Math.PI/5)-Math.PI/2, a2=((i*4+2)*Math.PI/5)-Math.PI/2;
-        i===0?ctx.moveTo(Math.cos(a1)*s,Math.sin(a1)*s):ctx.lineTo(Math.cos(a1)*s,Math.sin(a1)*s);
-        ctx.lineTo(Math.cos(a2)*s*0.4,Math.sin(a2)*s*0.4);
+// --- Glitch ---
+let glitchBands=[];
+function updateGlitch(t,energy){
+  bgX.fillStyle=T.bgColor; bgX.fillRect(0,0,bgC.width,bgC.height);
+  if(Math.random()<0.06*T.backgroundIntensity*(1+energy)){
+    const y=Math.random()*bgC.height,h2=Math.random()*40+5;
+    const shift=(Math.random()-0.5)*80*T.chaos;
+    const imgData=bgX.getImageData(0,y,bgC.width,h2);
+    bgX.putImageData(imgData,shift,y);
+    bgX.fillStyle=rgba(pc(Math.floor(Math.random()*4)),0.15);
+    bgX.fillRect(0,y,bgC.width,h2);
+  }
+  // Scanline glitch
+  if(Math.random()<0.03){
+    const y=Math.random()*bgC.height;
+    bgX.fillStyle=rgba(pc(0),0.08); bgX.fillRect(0,y,bgC.width,2);
+  }
+  // Color block
+  if(Math.random()<0.02*T.backgroundIntensity){
+    bgX.fillStyle=rgba(pc(1),0.06);
+    bgX.fillRect(Math.random()*bgC.width*0.8,Math.random()*bgC.height*0.8,Math.random()*200+20,Math.random()*80+10);
+  }
+  // Grid
+  bgX.strokeStyle=T.gridColor; bgX.lineWidth=1;
+  for(let x=0;x<bgC.width;x+=60){bgX.beginPath();bgX.moveTo(x,0);bgX.lineTo(x,bgC.height);bgX.stroke();}
+  for(let y=0;y<bgC.height;y+=60){bgX.beginPath();bgX.moveTo(0,y);bgX.lineTo(bgC.width,y);bgX.stroke();}
+}
+
+// --- Cityscape ---
+let buildings=[];
+function initCity(){
+  buildings=[];
+  const w=bgC.width;
+  for(let x=0;x<w;x+=Math.random()*60+20){
+    buildings.push({x,w:Math.random()*55+15,h:Math.random()*0.5+0.1,colorIdx:Math.floor(Math.random()*4),windows:[]});
+    const b=buildings[buildings.length-1];
+    for(let wy=0;wy<b.h*bgC.height;wy+=20){
+      for(let wx=0;wx<b.w;wx+=14){
+        if(Math.random()<0.6) b.windows.push({x:wx,y:wy,on:Math.random()<0.7});
       }
-      ctx.closePath(); ctx.fill(); break;
-    case 'diamond':
-      ctx.beginPath(); ctx.moveTo(0,-s); ctx.lineTo(s*0.6,0); ctx.lineTo(0,s); ctx.lineTo(-s*0.6,0); ctx.closePath(); ctx.fill(); break;
-    case 'lightning':
-      ctx.beginPath(); ctx.moveTo(s*0.2,-s); ctx.lineTo(-s*0.1,0); ctx.lineTo(s*0.3,0); ctx.lineTo(-s*0.2,s); ctx.lineTo(s*0.1,0); ctx.lineTo(-s*0.1,0);
-      ctx.strokeStyle=ctx.fillStyle; ctx.lineWidth=s*0.25; ctx.stroke(); break;
-    case 'note':
-      ctx.beginPath(); ctx.arc(0,s*0.4,s*0.35,0,Math.PI*2); ctx.fill();
-      ctx.fillRect(s*0.3,-s*0.5,s*0.12,s*0.95); break;
-    case 'infinity':
-      ctx.beginPath(); ctx.moveTo(0,0);
-      for(let i=0;i<=100;i++){const tt=i/100*Math.PI*2;ctx.lineTo(Math.sin(tt)*s/(1+Math.cos(tt)*Math.cos(tt)),Math.sin(tt)*Math.cos(tt)*s/(1+Math.cos(tt)*Math.cos(tt)));}
-      ctx.strokeStyle=ctx.fillStyle; ctx.lineWidth=s*0.2; ctx.stroke(); break;
-    case 'flower':
-      for(let i=0;i<6;i++){ctx.beginPath();const a=i*Math.PI/3;ctx.ellipse(Math.cos(a)*s*0.4,Math.sin(a)*s*0.4,s*0.3,s*0.15,a,0,Math.PI*2);ctx.fill();}
-      ctx.beginPath();ctx.arc(0,0,s*0.2,0,Math.PI*2);ctx.fill(); break;
-    case 'spiral':
-      ctx.beginPath();
-      for(let i=0;i<60;i++){const tt=i/60*Math.PI*4;const r=tt/(Math.PI*4)*s;ctx.lineTo(Math.cos(tt)*r,Math.sin(tt)*r);}
-      ctx.strokeStyle=ctx.fillStyle; ctx.lineWidth=2; ctx.stroke(); break;
-    case 'crown':
-      ctx.beginPath(); ctx.moveTo(-s,-s*0.2); ctx.lineTo(-s,s*0.4); ctx.lineTo(s,s*0.4); ctx.lineTo(s,-s*0.2); ctx.lineTo(s*0.5,s*0.1); ctx.lineTo(0,-s*0.6); ctx.lineTo(-s*0.5,s*0.1); ctx.closePath(); ctx.fill(); break;
-    case 'flame':
-      ctx.beginPath(); ctx.moveTo(0,s); ctx.bezierCurveTo(s*0.8,s*0.3,s*0.6,-s*0.2,0,-s); ctx.bezierCurveTo(-s*0.6,-s*0.2,-s*0.8,s*0.3,0,s); ctx.fill(); break;
-    case 'snowflake':
-      for(let i=0;i<6;i++){ctx.save();ctx.rotate(i*Math.PI/3);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-s);ctx.strokeStyle=ctx.fillStyle;ctx.lineWidth=2;ctx.stroke();ctx.beginPath();ctx.moveTo(-s*0.3,-s*0.5);ctx.lineTo(s*0.3,-s*0.5);ctx.stroke();ctx.restore();} break;
-    case 'moon':
-      ctx.beginPath(); ctx.arc(0,0,s,0.4,Math.PI*2-0.4); ctx.arc(s*0.3,0,s*0.75,Math.PI*2-0.4,0.4,true); ctx.closePath(); ctx.fill(); break;
-    default:
-      ctx.beginPath(); ctx.arc(0,0,s*0.5,0,Math.PI*2); ctx.fill();
+    }
+  }
+}
+function drawCityscape(t,energy){
+  const w=bgC.width,h=bgC.height;
+  bgX.fillStyle=T.bgColor; bgX.fillRect(0,0,w,h);
+  // Moon/stars
+  bgX.fillStyle='rgba(255,255,255,0.6)';
+  for(let i=0;i<80;i++){const sx=(Math.sin(i*437.3)*0.5+0.5)*w,sy=(Math.sin(i*239.7)*0.3)*h*0.4;bgX.fillRect(sx,sy,1,1);}
+  // Reflection on ground
+  const grd=bgX.createLinearGradient(0,h*0.75,0,h);
+  grd.addColorStop(0,rgba(pc(0),0.15*T.backgroundIntensity)); grd.addColorStop(1,'transparent');
+  bgX.fillStyle=grd; bgX.fillRect(0,h*0.75,w,h*0.25);
+  // Buildings
+  for(const b of buildings){
+    const bh=b.h*h, by=h-bh;
+    bgX.fillStyle=rgba(pc(b.colorIdx),0.15+T.backgroundIntensity*0.1);
+    bgX.fillRect(b.x,by,b.w,bh);
+    bgX.strokeStyle=rgba(pc(b.colorIdx),0.4); bgX.lineWidth=1;
+    bgX.strokeRect(b.x,by,b.w,bh);
+    for(const win of b.windows){
+      if(win.on&&Math.random()>0.002){
+        bgX.fillStyle=rgba(pc(b.colorIdx),0.7+Math.sin(t*0.001+win.x)*0.3);
+        bgX.fillRect(b.x+win.x+2,by+win.y+2,8,10);
+      }
+    }
+    // Rooftop glow
+    bgX.shadowBlur=15; bgX.shadowColor=pc(b.colorIdx);
+    bgX.fillStyle=rgba(pc(b.colorIdx),0.5);
+    bgX.fillRect(b.x,by,b.w,2);
+    bgX.shadowBlur=0;
+  }
+  // Horizon glow
+  const hgrd=bgX.createLinearGradient(0,h*0.65,0,h);
+  hgrd.addColorStop(0,rgba(pc(0),0.2*T.backgroundIntensity*(1+energy*0.5)));
+  hgrd.addColorStop(1,'transparent');
+  bgX.fillStyle=hgrd; bgX.fillRect(0,h*0.65,w,h*0.35);
+}
+
+// --- Aurora ---
+function drawAurora(t,energy){
+  const w=bgC.width,h=bgC.height;
+  bgX.fillStyle=T.bgColor; bgX.fillRect(0,0,w,h);
+  for(let layer=0;layer<4;layer++){
+    bgX.beginPath();
+    const offset=layer*0.7;
+    for(let x=0;x<=w;x+=4){
+      const nx=x/w;
+      const y=h*(0.25+layer*0.08)+Math.sin(nx*5+t*0.0007+offset)*h*0.08*(1+energy)+Math.sin(nx*11+t*0.0004+offset*2)*h*0.04;
+      x===0?bgX.moveTo(x,y):bgX.lineTo(x,y);
+    }
+    bgX.lineTo(w,0); bgX.lineTo(0,0); bgX.closePath();
+    const grd=bgX.createLinearGradient(0,0,0,h*0.5);
+    const c=hex2rgb(pc(layer));
+    grd.addColorStop(0,`rgba(${c.r},${c.g},${c.b},0)`);
+    grd.addColorStop(0.5,`rgba(${c.r},${c.g},${c.b},${0.08*T.backgroundIntensity*(1+SM.beatPulse*0.5)})`);
+    grd.addColorStop(1,`rgba(${c.r},${c.g},${c.b},0)`);
+    bgX.fillStyle=grd; bgX.fill();
   }
 }
 
-function spawnSymbols(symbols, count=1) {
-  if (!symbols || symbols.length === 0) return;
-  for(let i=0;i<count;i++) {
-    const type = symbols[Math.floor(Math.random()*symbols.length)];
-    floatingSymbols.push(new FloatingSymbol(type));
+// --- Void ---
+function drawVoid(t,energy){
+  const w=bgC.width,h=bgC.height;
+  bgX.fillStyle=T.bgColor; bgX.fillRect(0,0,w,h);
+  for(let i=0;i<3;i++){
+    const cx=w*(0.3+i*0.2)+Math.sin(t*0.0003+i)*w*0.15;
+    const cy=h*0.5+Math.cos(t*0.0002+i)*h*0.1;
+    const grd=bgX.createRadialGradient(cx,cy,0,cx,cy,w*0.4);
+    const c=hex2rgb(pc(i));
+    grd.addColorStop(0,`rgba(${c.r},${c.g},${c.b},${T.orbIntensity+energy*0.06})`);
+    grd.addColorStop(1,'transparent');
+    bgX.fillStyle=grd; bgX.fillRect(0,0,w,h);
   }
 }
 
-// ─── PARTICLES ────────────────────────────────────────────────────────────────
+// --- Matrix ---
+let matrixCols=[];
+function initMatrix(){matrixCols=[];for(let x=0;x<bgC.width;x+=14)matrixCols.push({x,y:Math.random()*bgC.height,speed:Math.random()*3+1,chars:[]});}
+initMatrix();
+function drawMatrix(t,energy){
+  const w=bgC.width,h=bgC.height;
+  bgX.fillStyle='rgba(0,0,0,0.1)'; bgX.fillRect(0,0,w,h);
+  bgX.font='12px Share Tech Mono';
+  for(const col of matrixCols){
+    col.y+=col.speed*(1+energy*2)*T.backgroundIntensity;
+    if(col.y>h) col.y=0;
+    bgX.fillStyle=rgba(pc(0),0.8);
+    bgX.fillText(String.fromCharCode(0x30A0+Math.random()*96),col.x,col.y);
+    bgX.fillStyle=rgba(pc(1),0.3);
+    bgX.fillText(String.fromCharCode(0x30A0+Math.random()*96),col.x,col.y-20);
+  }
+}
+
+// --- Fractal ---
+function drawFractal(t,energy){
+  const w=bgC.width,h=bgC.height;
+  bgX.fillStyle=T.bgColor; bgX.fillRect(0,0,w,h);
+  function branch(x,y,len,angle,depth){
+    if(depth<1||len<3)return;
+    const x2=x+Math.cos(angle)*len, y2=y+Math.sin(angle)*len;
+    bgX.beginPath(); bgX.moveTo(x,y); bgX.lineTo(x2,y2);
+    bgX.strokeStyle=rgba(pc(depth%4),(depth/8)*T.backgroundIntensity*(1+SM.beatPulse*0.3));
+    bgX.lineWidth=depth*0.4; bgX.stroke();
+    const spread=0.3+T.chaos*0.3+Math.sin(t*0.0005)*0.1;
+    branch(x2,y2,len*0.7,angle-spread,depth-1);
+    branch(x2,y2,len*0.7,angle+spread,depth-1);
+  }
+  branch(w*0.5,h*0.9,h*0.22,-Math.PI/2+Math.sin(t*0.0004)*0.15,7);
+  branch(w*0.15,h*0.8,h*0.14,-Math.PI/3,5);
+  branch(w*0.85,h*0.8,h*0.14,-Math.PI*2/3,5);
+}
+
+function drawBackground(t,energy){
+  switch(T.backgroundMode){
+    case 'starfield': drawStarfield(t,energy); break;
+    case 'tunnel': drawTunnel(t,energy); break;
+    case 'glitch': updateGlitch(t,energy); break;
+    case 'cityscape': drawCityscape(t,energy); break;
+    case 'aurora': drawAurora(t,energy); break;
+    case 'matrix': drawMatrix(t,energy); break;
+    case 'fractal': drawFractal(t,energy); break;
+    default: drawVoid(t,energy);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PARTICLES
+// ═══════════════════════════════════════════════════════════════════
 class Particle {
-  constructor() { this.reset(true); }
-  reset(init=false) {
-    this.x=Math.random()*canvas.width;
-    this.y=init?Math.random()*canvas.height:canvas.height+10;
-    this.vx=(Math.random()-0.5)*1.5; this.vy=-(Math.random()*2+0.5);
+  constructor(){this.reset(true);}
+  reset(init=false){
+    const w=mC.width,h=mC.height;
+    this.mode=T.particleMode;
+    switch(this.mode){
+      case 'rain': this.x=Math.random()*w;this.y=init?Math.random()*h:-10;this.vx=(Math.random()-0.3)*2;this.vy=Math.random()*8+4;this.len=Math.random()*20+10;break;
+      case 'snow': this.x=Math.random()*w;this.y=init?Math.random()*h:-10;this.vx=(Math.random()-0.5)*1;this.vy=Math.random()*1.5+0.5;this.size=Math.random()*3+1;break;
+      case 'confetti': this.x=Math.random()*w;this.y=init?Math.random()*h:-10;this.vx=(Math.random()-0.5)*4;this.vy=Math.random()*3+1;this.rot=Math.random()*Math.PI*2;this.rotS=(Math.random()-0.5)*0.2;this.w=Math.random()*10+4;this.h2=Math.random()*6+3;break;
+      case 'sparks': this.x=w/2+(Math.random()-0.5)*100;this.y=h/2+(Math.random()-0.5)*100;const a=Math.random()*Math.PI*2;const sp=Math.random()*8+2;this.vx=Math.cos(a)*sp;this.vy=Math.sin(a)*sp;this.life2=1;break;
+      case 'bubbles': this.x=Math.random()*w;this.y=init?Math.random()*h:h+20;this.vx=(Math.random()-0.5)*0.5;this.vy=-(Math.random()*1+0.3);this.r=Math.random()*12+4;break;
+      case 'shards': this.x=Math.random()*w;this.y=init?Math.random()*h:h+10;this.vx=(Math.random()-0.5)*3;this.vy=-(Math.random()*4+1);this.rot=Math.random()*Math.PI*2;this.rotS=(Math.random()-0.5)*0.15;this.size=Math.random()*15+5;break;
+      case 'DNA': this.t=init?Math.random()*Math.PI*4:0;this.speed=Math.random()*0.02+0.01;this.strand=Math.random()<0.5?1:-1;this.colorIdx=Math.floor(Math.random()*4);break;
+      case 'meteors': this.x=Math.random()*mC.width;this.y=init?Math.random()*mC.height:-20;this.vx=Math.random()*3+1;this.vy=Math.random()*5+3;this.len=Math.random()*60+30;break;
+      case 'fireflies': this.x=Math.random()*w;this.y=init?Math.random()*h:Math.random()*h;this.vx=(Math.random()-0.5)*1;this.vy=(Math.random()-0.5)*1;this.phase=Math.random()*Math.PI*2;this.r=Math.random()*4+2;break;
+      default: this.x=Math.random()*w;this.y=init?Math.random()*h:h+10;this.vx=(Math.random()-0.5)*1.5;this.vy=-(Math.random()*2+0.5);this.trail=[];this.size=Math.random()*3+1;
+    }
     this.life=1; this.decay=Math.random()*0.005+0.002;
-    this.size=Math.random()*3+1; this.colorIdx=Math.floor(Math.random()*4);
-    this.trail=[]; this.angle=Math.random()*Math.PI*2; this.spiralR=Math.random()*50;
+    this.colorIdx=Math.floor(Math.random()*4);
+    if(!init)this.life=1;
   }
-  update(energy,t) {
-    const shape=currentTheme.particleShape, speed=1+energy*3;
-    if(shape==='spiral'){this.angle+=0.05;this.x+=Math.cos(this.angle)*1.5+this.vx*0.3;this.y+=this.vy*speed*0.5-Math.sin(this.angle)*0.8;}
-    else if(shape==='float'){this.x+=Math.sin(t*0.001+this.spiralR)*0.8+this.vx*0.3;this.y+=this.vy*speed*0.4;}
-    else if(shape==='drift'){this.x+=Math.sin(t*0.0005+this.spiralR)*0.5+this.vx*0.2;this.y+=this.vy*speed*0.3;}
-    else if(shape==='burst'){this.x+=this.vx*speed*1.5;this.y+=this.vy*speed*1.5;}
-    else if(shape==='sharp'){this.x+=this.vx*speed*1.2;this.y+=this.vy*speed*1.2;}
-    else{this.x+=this.vx*speed;this.y+=this.vy*speed;}
-    this.trail.push({x:this.x,y:this.y}); if(this.trail.length>12) this.trail.shift();
-    this.life-=this.decay;
-    if(this.life<=0||this.y<-50||this.x<-100||this.x>canvas.width+100) this.reset();
+  update(energy,t){
+    const sp=T.particleSpeed*(1+energy*1.5);
+    switch(this.mode){
+      case 'rain':this.x+=this.vx;this.y+=this.vy*sp;if(this.y>mC.height+20)this.reset();break;
+      case 'snow':this.x+=this.vx+Math.sin(t*0.001+this.y*0.01)*0.5;this.y+=this.vy*sp*0.5;if(this.y>mC.height+10)this.reset();break;
+      case 'confetti':this.x+=this.vx;this.y+=this.vy*sp*0.5;this.rot+=this.rotS;this.vy+=0.05;if(this.y>mC.height+20)this.reset();break;
+      case 'sparks':this.vx*=0.96;this.vy*=0.96;this.vy+=0.15;this.x+=this.vx*sp;this.y+=this.vy*sp;this.life-=this.decay*3;if(this.life<=0)this.reset();break;
+      case 'bubbles':this.x+=this.vx+Math.sin(t*0.001+this.r)*0.5;this.y+=this.vy*sp;if(this.y<-20)this.reset();break;
+      case 'shards':this.x+=this.vx;this.y+=this.vy*sp;this.rot+=this.rotS;if(this.y<-30)this.reset();break;
+      case 'DNA':this.t+=this.speed*sp;if(this.t>Math.PI*8)this.reset();break;
+      case 'meteors':this.x+=this.vx*sp;this.y+=this.vy*sp;if(this.y>mC.height+20||this.x>mC.width+20)this.reset();break;
+      case 'fireflies':this.vx+=((Math.random()-0.5)*0.1);this.vy+=((Math.random()-0.5)*0.1);this.vx=Math.max(-1.5,Math.min(1.5,this.vx));this.vy=Math.max(-1.5,Math.min(1.5,this.vy));this.x+=this.vx*sp*0.5;this.y+=this.vy*sp*0.5;this.phase+=0.05;if(this.x<0||this.x>mC.width||this.y<0||this.y>mC.height)this.reset();break;
+      default:this.x+=this.vx*sp;this.y+=this.vy*sp;if(this.trail)this.trail.push({x:this.x,y:this.y});if(this.trail&&this.trail.length>12)this.trail.shift();if(this.y<-50||this.x<-100||this.x>mC.width+100)this.reset();
+    }
   }
-  draw(ctx) {
-    if(this.trail.length<2) return;
-    ctx.beginPath(); ctx.moveTo(this.trail[0].x,this.trail[0].y);
-    for(let i=1;i<this.trail.length;i++) ctx.lineTo(this.trail[i].x,this.trail[i].y);
-    ctx.strokeStyle=rgbStr(pc(this.colorIdx),this.life*0.6);
-    ctx.lineWidth=this.size*this.life; ctx.shadowBlur=15; ctx.shadowColor=pc(this.colorIdx);
-    ctx.stroke(); ctx.shadowBlur=0;
-    ctx.beginPath(); ctx.arc(this.x,this.y,this.size*this.life,0,Math.PI*2);
-    ctx.fillStyle=rgbStr(pc(this.colorIdx),this.life); ctx.fill();
+  draw(ctx,t){
+    const c=pc(this.colorIdx);
+    ctx.shadowBlur=8; ctx.shadowColor=c;
+    switch(this.mode){
+      case 'rain':ctx.beginPath();ctx.moveTo(this.x,this.y);ctx.lineTo(this.x+this.vx*2,this.y+this.len);ctx.strokeStyle=rgba(c,0.5);ctx.lineWidth=1;ctx.stroke();break;
+      case 'snow':ctx.beginPath();ctx.arc(this.x,this.y,this.size,0,Math.PI*2);ctx.fillStyle=rgba(c,0.8);ctx.fill();break;
+      case 'confetti':ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.rot);ctx.fillStyle=rgba(c,0.8);ctx.fillRect(-this.w/2,-this.h2/2,this.w,this.h2);ctx.restore();break;
+      case 'sparks':ctx.beginPath();ctx.arc(this.x,this.y,this.life*3,0,Math.PI*2);ctx.fillStyle=rgba(c,this.life);ctx.fill();break;
+      case 'bubbles':ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.strokeStyle=rgba(c,0.6);ctx.lineWidth=1.5;ctx.stroke();break;
+      case 'shards':ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.rot);ctx.beginPath();ctx.moveTo(0,-this.size);ctx.lineTo(this.size*0.3,this.size);ctx.lineTo(-this.size*0.3,this.size);ctx.closePath();ctx.fillStyle=rgba(c,0.6);ctx.fill();ctx.restore();break;
+      case 'DNA':{const prog=this.t/(Math.PI*8);const xp=mC.width*prog;const y1=mC.height/2+Math.sin(this.t)*80*this.strand;const y2=mC.height/2+Math.sin(this.t+Math.PI)*80*this.strand;ctx.beginPath();ctx.arc(xp,y1,3,0,Math.PI*2);ctx.fillStyle=rgba(pc(0),0.8);ctx.fill();ctx.beginPath();ctx.arc(xp,y2,3,0,Math.PI*2);ctx.fillStyle=rgba(pc(1),0.8);ctx.fill();if(Math.sin(this.t)>0.9){ctx.beginPath();ctx.moveTo(xp,y1);ctx.lineTo(xp,y2);ctx.strokeStyle=rgba(pc(2),0.3);ctx.lineWidth=1;ctx.stroke();}}break;
+      case 'meteors':ctx.beginPath();ctx.moveTo(this.x,this.y);ctx.lineTo(this.x-this.vx*this.len/8,this.y-this.vy*this.len/8);const mg=ctx.createLinearGradient(this.x,this.y,this.x-this.vx*this.len/8,this.y-this.vy*this.len/8);mg.addColorStop(0,rgba(c,0.9));mg.addColorStop(1,'transparent');ctx.strokeStyle=mg;ctx.lineWidth=2;ctx.stroke();break;
+      case 'fireflies':{const brightness=Math.sin(this.phase)*0.4+0.6;ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fillStyle=rgba(c,brightness*0.8);ctx.shadowBlur=15;ctx.fill();}break;
+      default:if(this.trail&&this.trail.length>1){ctx.beginPath();ctx.moveTo(this.trail[0].x,this.trail[0].y);for(let i=1;i<this.trail.length;i++)ctx.lineTo(this.trail[i].x,this.trail[i].y);ctx.strokeStyle=rgba(c,0.5);ctx.lineWidth=this.size;ctx.stroke();}ctx.beginPath();ctx.arc(this.x,this.y,this.size,0,Math.PI*2);ctx.fillStyle=rgba(c,0.8);ctx.fill();
+    }
+    ctx.shadowBlur=0;
   }
 }
-const particles = Array.from({length:120},()=>new Particle());
+let particles=[];
+function resetParticles(){particles=Array.from({length:Math.min(T.particleCount,250)},()=>new Particle());}
+resetParticles();
 
-// ─── GEO SHAPES ───────────────────────────────────────────────────────────────
-class GeoShape {
-  constructor(){this.reset();}
-  reset(){
-    this.x=Math.random()*canvas.width; this.y=Math.random()*canvas.height;
-    this.size=Math.random()*80+20; this.rot=Math.random()*Math.PI*2;
-    this.rotSpeed=(Math.random()-0.5)*0.02;
-    const sides=currentTheme.geoSides||[4,6,8];
-    this.sides=sides[Math.floor(Math.random()*sides.length)];
-    this.colorIdx=Math.floor(Math.random()*4); this.alpha=Math.random()*0.15+0.03;
-    this.vx=(Math.random()-0.5)*0.3; this.vy=(Math.random()-0.5)*0.3;
-    this.pulsePhase=Math.random()*Math.PI*2;
-  }
-  update(energy){this.rot+=this.rotSpeed*(1+energy);this.x+=this.vx;this.y+=this.vy;if(this.x<-200||this.x>canvas.width+200)this.vx*=-1;if(this.y<-200||this.y>canvas.height+200)this.vy*=-1;}
-  draw(ctx,t,bp){
-    const pulse=1+Math.sin(t*0.002+this.pulsePhase)*0.1+bp*0.3;
-    const s=this.size*pulse;
-    ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.rot);
-    ctx.beginPath();
-    for(let i=0;i<this.sides;i++){const a=(i/this.sides)*Math.PI*2-Math.PI/2;i===0?ctx.moveTo(Math.cos(a)*s,Math.sin(a)*s):ctx.lineTo(Math.cos(a)*s,Math.sin(a)*s);}
-    ctx.closePath();
-    ctx.strokeStyle=rgbStr(pc(this.colorIdx),this.alpha*3); ctx.lineWidth=1.5;
-    ctx.shadowBlur=20; ctx.shadowColor=pc(this.colorIdx);
-    ctx.stroke(); ctx.fillStyle=rgbStr(pc(this.colorIdx),this.alpha);
-    ctx.fill(); ctx.shadowBlur=0; ctx.restore();
-  }
-}
-const geoShapes = Array.from({length:18},()=>new GeoShape());
+// ═══════════════════════════════════════════════════════════════════
+// GEOMETRY RENDERERS
+// ═══════════════════════════════════════════════════════════════════
+let geoData={polygons:[],tunnelAngle:0,dnaOffset:0,treePhase:0,orbitAngle:0,kaleAngle:0};
 
-// ─── WAVEFORM ─────────────────────────────────────────────────────────────────
-let wavePoints=Array(128).fill(0), waveTargets=Array(128).fill(0);
-function updateWave(energy,bpm,t){
-  const freq=bpm/60;
-  for(let i=0;i<wavePoints.length;i++){
-    const x=i/wavePoints.length;
-    waveTargets[i]=Math.sin(x*Math.PI*8+t*freq*0.01)*energy*0.4+Math.sin(x*Math.PI*16+t*freq*0.007)*energy*0.2+Math.sin(x*Math.PI*3+t*0.003)*0.1;
-    wavePoints[i]+=(waveTargets[i]-wavePoints[i])*0.12;
+function initGeo(){
+  geoData.polygons=Array.from({length:18},()=>({x:Math.random()*mC.width,y:Math.random()*mC.height,size:Math.random()*80+20,rot:Math.random()*Math.PI*2,rotS:(Math.random()-0.5)*0.02,sides:[3,4,5,6,8,12][Math.floor(Math.random()*6)],colorIdx:Math.floor(Math.random()*4),alpha:Math.random()*0.15+0.03,vx:(Math.random()-0.5)*0.3,vy:(Math.random()-0.5)*0.3,phase:Math.random()*Math.PI*2}));
+}
+initGeo();
+
+function drawGeometry(ctx,t,bp){
+  const w=mC.width,h=mC.height,cx=w/2,cy=h/2;
+  switch(T.geometryMode){
+    case 'polygons':
+      for(const p of geoData.polygons){
+        p.rot+=p.rotS*(1+SM.energy); p.x+=p.vx; p.y+=p.vy;
+        if(p.x<-200||p.x>w+200)p.vx*=-1; if(p.y<-200||p.y>h+200)p.vy*=-1;
+        const pulse=1+Math.sin(t*0.002+p.phase)*0.1+bp*0.3;
+        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+        ctx.beginPath();
+        for(let i=0;i<=p.sides;i++){const a=(i/p.sides)*Math.PI*2-Math.PI/2;i===0?ctx.moveTo(Math.cos(a)*p.size*pulse,Math.sin(a)*p.size*pulse):ctx.lineTo(Math.cos(a)*p.size*pulse,Math.sin(a)*p.size*pulse);}
+        ctx.strokeStyle=rgba(pc(p.colorIdx),p.alpha*3); ctx.lineWidth=1.5; ctx.shadowBlur=15; ctx.shadowColor=pc(p.colorIdx); ctx.stroke();
+        ctx.fillStyle=rgba(pc(p.colorIdx),p.alpha); ctx.fill(); ctx.shadowBlur=0; ctx.restore();
+      }
+      break;
+
+    case 'tunnel_rings':
+      geoData.tunnelAngle+=0.008*(1+SM.energy);
+      for(let i=0;i<12;i++){
+        const z=((t*0.0005+i/12)%1);
+        const size=(1-z)*Math.min(w,h)*0.6;
+        const alpha=z*(1-z)*2*T.geometryComplexity;
+        ctx.save(); ctx.translate(cx,cy); ctx.rotate(geoData.tunnelAngle+i*0.3);
+        ctx.beginPath(); ctx.arc(0,0,size,0,Math.PI*2);
+        ctx.strokeStyle=rgba(pc(i%4),alpha*(1+bp*0.5)); ctx.lineWidth=2; ctx.shadowBlur=20; ctx.shadowColor=pc(i%4); ctx.stroke(); ctx.shadowBlur=0; ctx.restore();
+      }
+      break;
+
+    case 'dna_helix':
+      geoData.dnaOffset+=0.03*(1+SM.energy);
+      for(let x=0;x<w;x+=8){
+        const prog=x/w;
+        const y1=cy+Math.sin(prog*Math.PI*6+geoData.dnaOffset)*h*0.2;
+        const y2=cy+Math.sin(prog*Math.PI*6+geoData.dnaOffset+Math.PI)*h*0.2;
+        const sz=4+Math.sin(prog*Math.PI*6+geoData.dnaOffset)*2;
+        ctx.beginPath(); ctx.arc(x,y1,sz,0,Math.PI*2);
+        ctx.fillStyle=rgba(pc(0),0.7*(1+bp*0.3)); ctx.shadowBlur=10; ctx.shadowColor=pc(0); ctx.fill();
+        ctx.beginPath(); ctx.arc(x,y2,sz,0,Math.PI*2);
+        ctx.fillStyle=rgba(pc(1),0.7*(1+bp*0.3)); ctx.shadowColor=pc(1); ctx.fill(); ctx.shadowBlur=0;
+        if(Math.floor(prog*20)%1===0){ctx.beginPath(); ctx.moveTo(x,y1); ctx.lineTo(x,y2); ctx.strokeStyle=rgba(pc(2),0.2); ctx.lineWidth=1; ctx.stroke();}
+      }
+      break;
+
+    case 'grid_pulse':
+      const gSize=60+bp*40;
+      for(let x=0;x<w+gSize;x+=gSize){for(let y=0;y<h+gSize;y+=gSize){
+        const dist=Math.sqrt(Math.pow(x-cx,2)+Math.pow(y-cy,2));
+        const wave=Math.sin(dist*0.02-t*0.003)*0.5+0.5;
+        const alpha=wave*T.geometryComplexity*0.4*(1+bp*0.5);
+        ctx.beginPath(); ctx.arc(x,y,3+wave*5+bp*8,0,Math.PI*2);
+        ctx.fillStyle=rgba(pc(Math.floor(dist/100)%4),alpha); ctx.fill();
+      }}
+      break;
+
+    case 'orbit_system':
+      geoData.orbitAngle+=0.015*(1+SM.energy);
+      const orbits=[{r:100,speed:1,size:12,ci:0},{r:180,speed:0.6,size:8,ci:1},{r:260,speed:0.4,size:16,ci:2},{r:340,speed:0.25,size:10,ci:3}];
+      // Center
+      ctx.beginPath(); ctx.arc(cx,cy,20+bp*15,0,Math.PI*2);
+      ctx.fillStyle=rgba(pc(0),0.8); ctx.shadowBlur=30; ctx.shadowColor=pc(0); ctx.fill(); ctx.shadowBlur=0;
+      for(const o of orbits){
+        const angle=geoData.orbitAngle*o.speed;
+        ctx.beginPath(); ctx.arc(cx,cy,o.r,0,Math.PI*2); ctx.strokeStyle=rgba(pc(o.ci),0.15); ctx.lineWidth=1; ctx.stroke();
+        const ox=cx+Math.cos(angle)*o.r, oy=cy+Math.sin(angle)*o.r;
+        ctx.beginPath(); ctx.arc(ox,oy,o.size+bp*8,0,Math.PI*2);
+        ctx.fillStyle=rgba(pc(o.ci),0.9); ctx.shadowBlur=20; ctx.shadowColor=pc(o.ci); ctx.fill(); ctx.shadowBlur=0;
+      }
+      break;
+
+    case 'waveform_bars':
+      const bars=80, barW=w/bars;
+      for(let i=0;i<bars;i++){
+        const prog=i/bars;
+        const bh=(Math.sin(prog*Math.PI*4+t*0.003)*0.5+0.5)*h*0.4*SM.energy*(1+bp*0.8);
+        const x2=i*barW;
+        const ci=Math.floor(prog*4)%4;
+        ctx.fillStyle=rgba(pc(ci),0.7);
+        ctx.shadowBlur=10; ctx.shadowColor=pc(ci);
+        ctx.fillRect(x2+1,cy-bh,barW-2,bh*2);
+        ctx.shadowBlur=0;
+      }
+      break;
+
+    case 'kaleidoscope':
+      geoData.kaleAngle+=0.008*(1+SM.energy*0.5);
+      const segs=8;
+      ctx.save(); ctx.translate(cx,cy);
+      for(let seg=0;seg<segs;seg++){
+        ctx.save(); ctx.rotate((seg/segs)*Math.PI*2+geoData.kaleAngle);
+        for(let i=0;i<5;i++){
+          const r=50+i*60, angle=Math.sin(t*0.002+i)*0.5;
+          ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,r,angle,angle+Math.PI/segs);
+          ctx.strokeStyle=rgba(pc(i%4),0.4*T.geometryComplexity*(1+bp*0.3)); ctx.lineWidth=2; ctx.shadowBlur=10; ctx.shadowColor=pc(i%4); ctx.stroke(); ctx.shadowBlur=0;
+          ctx.beginPath(); ctx.arc(r*Math.cos(angle+0.2),r*Math.sin(angle+0.2),8+bp*6,0,Math.PI*2);
+          ctx.fillStyle=rgba(pc((i+1)%4),0.6); ctx.fill();
+        }
+        ctx.restore();
+      }
+      ctx.restore();
+      break;
+
+    case 'fractal_tree':
+      geoData.treePhase+=0.005;
+      function ftBranch(x,y,len,ang,d){
+        if(d<1||len<5)return;
+        const x2=x+Math.cos(ang)*len, y2=y+Math.sin(ang)*len;
+        ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x2,y2);
+        ctx.strokeStyle=rgba(pc(d%4),(d/9)*T.geometryComplexity*(1+bp*0.4));
+        ctx.lineWidth=d*0.5; ctx.shadowBlur=8; ctx.shadowColor=pc(d%4); ctx.stroke(); ctx.shadowBlur=0;
+        const sp=0.35+T.chaos*0.3+Math.sin(geoData.treePhase+d)*0.1;
+        ftBranch(x2,y2,len*0.68,ang-sp,d-1); ftBranch(x2,y2,len*0.68,ang+sp,d-1);
+      }
+      ftBranch(cx,h*0.95,h*0.25,-Math.PI/2,8);
+      break;
   }
 }
-function drawWave(ctx,w,h,t,bp){
-  const cy=h/2, amp=h*0.12*(currentTheme.waveAmp||1)*(1+bp*0.8);
+
+// ═══════════════════════════════════════════════════════════════════
+// WAVEFORM
+// ═══════════════════════════════════════════════════════════════════
+let wP=Array(128).fill(0),wTgt=Array(128).fill(0);
+function updateWave(energy,t){
+  for(let i=0;i<wP.length;i++){const x=i/wP.length;wTgt[i]=Math.sin(x*Math.PI*8+t*(S.bpm/60)*0.01)*energy*0.4+Math.sin(x*Math.PI*16+t*0.007)*energy*0.2+Math.sin(x*Math.PI*3+t*0.003)*0.1;wP[i]+=(wTgt[i]-wP[i])*0.12;}
+}
+function drawWave(ctx,t,bp){
+  const w=mC.width,h=mC.height,cy=h/2;
+  const amp=h*0.1*T.waveAmp*(1+bp*0.8);
   for(let layer=0;layer<3;layer++){
     ctx.beginPath();
-    for(let i=0;i<=wavePoints.length;i++){const idx=Math.min(i,wavePoints.length-1);const x=i/wavePoints.length*w;const y=cy+wavePoints[idx]*amp+Math.sin(t*0.001+layer*0.3)*20;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
-    ctx.strokeStyle=rgbStr(pc(layer),(0.6-layer*0.15)*smooth.energy);
-    ctx.lineWidth=2-layer*0.5; ctx.shadowBlur=25; ctx.shadowColor=pc(layer);
-    ctx.stroke(); ctx.shadowBlur=0;
+    for(let i=0;i<=wP.length;i++){const idx=Math.min(i,wP.length-1);const x=i/wP.length*w;const y=cy+wP[idx]*amp+Math.sin(t*0.001+layer*0.3)*15;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+    ctx.strokeStyle=rgba(pc(layer),(0.5-layer*0.12)*SM.energy);
+    ctx.lineWidth=2-layer*0.5; ctx.shadowBlur=20; ctx.shadowColor=pc(layer); ctx.stroke(); ctx.shadowBlur=0;
   }
 }
 
-// ─── BEAT RINGS ───────────────────────────────────────────────────────────────
-let beatRings=[];
-function spawnBeatRing(){beatRings.push({x:canvas.width/2+(Math.random()-0.5)*200,y:canvas.height/2+(Math.random()-0.5)*200,r:0,maxR:Math.random()*300+150,life:1,colorIdx:Math.floor(Math.random()*4)});}
-function updateDrawRings(ctx){
-  beatRings=beatRings.filter(r=>r.life>0);
-  for(const ring of beatRings){ring.r+=(ring.maxR-ring.r)*0.08;ring.life-=0.025;ctx.beginPath();ctx.arc(ring.x,ring.y,ring.r,0,Math.PI*2);ctx.strokeStyle=rgbStr(pc(ring.colorIdx),ring.life*0.5);ctx.lineWidth=2*ring.life;ctx.shadowBlur=30;ctx.shadowColor=pc(ring.colorIdx);ctx.stroke();ctx.shadowBlur=0;}
+// ═══════════════════════════════════════════════════════════════════
+// BEAT EFFECTS
+// ═══════════════════════════════════════════════════════════════════
+let beatFX=[];
+function triggerBeatEffect(){
+  const w=mC.width,h=mC.height,cx=w/2,cy=h/2;
+  switch(T.beatEffect){
+    case 'explosion': for(let i=0;i<8;i++)beatFX.push({type:'ring',x:cx+(Math.random()-0.5)*w*0.4,y:cy+(Math.random()-0.5)*h*0.4,r:0,maxR:Math.random()*250+100,life:1,colorIdx:Math.floor(Math.random()*4)}); break;
+    case 'ripple': beatFX.push({type:'ring',x:cx,y:cy,r:0,maxR:Math.min(w,h)*0.6,life:1,colorIdx:Math.floor(Math.random()*4)}); break;
+    case 'shockwave': for(let i=0;i<3;i++)beatFX.push({type:'ring',x:cx,y:cy,r:i*30,maxR:Math.min(w,h)*0.7,life:1,colorIdx:i%4}); break;
+    case 'nova': for(let i=0;i<12;i++){const a=i/12*Math.PI*2;beatFX.push({type:'line',x:cx,y:cy,vx:Math.cos(a)*15,vy:Math.sin(a)*15,life:1,colorIdx:i%4});} break;
+    case 'glitch_burst': for(let i=0;i<6;i++)beatFX.push({type:'glitch',x:Math.random()*w,y:Math.random()*h,w2:Math.random()*200+50,h2:Math.random()*80+20,life:1,colorIdx:Math.floor(Math.random()*4)}); break;
+    case 'color_shift': beatFX.push({type:'flash',life:1,colorIdx:Math.floor(Math.random()*4)}); break;
+    case 'earthquake': CAM.shakeX=(Math.random()-0.5)*20; CAM.shakeY=(Math.random()-0.5)*20; break;
+    default: beatFX.push({type:'ring',x:cx+(Math.random()-0.5)*200,y:cy+(Math.random()-0.5)*200,r:0,maxR:200,life:1,colorIdx:Math.floor(Math.random()*4)});
+  }
+  // Camera effects
+  for(const fx of T.cameraEffects||[]){
+    if(fx==='zoom_pulse') CAM.zoom=1.04;
+    if(fx==='screen_shake'){CAM.shakeX=(Math.random()-0.5)*12;CAM.shakeY=(Math.random()-0.5)*12;}
+    if(fx==='strobe') beatFX.push({type:'flash',life:0.8,colorIdx:0});
+  }
+}
+function updateDrawBeatFX(ctx){
+  beatFX=beatFX.filter(f=>f.life>0);
+  for(const f of beatFX){
+    switch(f.type){
+      case 'ring': f.r+=(f.maxR-f.r)*0.1; f.life-=0.03; ctx.beginPath(); ctx.arc(f.x,f.y,f.r,0,Math.PI*2); ctx.strokeStyle=rgba(pc(f.colorIdx),f.life*0.6); ctx.lineWidth=2*f.life; ctx.shadowBlur=25; ctx.shadowColor=pc(f.colorIdx); ctx.stroke(); ctx.shadowBlur=0; break;
+      case 'line': f.x+=f.vx; f.y+=f.vy; f.vx*=0.92; f.vy*=0.92; f.life-=0.04; ctx.beginPath(); ctx.arc(f.x,f.y,f.life*6,0,Math.PI*2); ctx.fillStyle=rgba(pc(f.colorIdx),f.life); ctx.shadowBlur=15; ctx.shadowColor=pc(f.colorIdx); ctx.fill(); ctx.shadowBlur=0; break;
+      case 'glitch': f.life-=0.08; ctx.fillStyle=rgba(pc(f.colorIdx),f.life*0.3); ctx.fillRect(f.x,f.y,f.w2,f.h2); break;
+      case 'flash': f.life-=0.12; ctx.fillStyle=rgba(pc(f.colorIdx),f.life*T.beatFlash*2); ctx.fillRect(0,0,mC.width,mC.height); break;
+    }
+  }
 }
 
-// ─── BACKGROUND ───────────────────────────────────────────────────────────────
-function drawBackground(t,energy){
-  const w=bgCanvas.width,h=bgCanvas.height;
-  bgCtx.clearRect(0,0,w,h); bgCtx.fillStyle=currentTheme.bgColor||'#000008'; bgCtx.fillRect(0,0,w,h);
-  const orbs=[{x:0.2+Math.sin(t*0.0003)*0.1,y:0.5,c:pc(1)},{x:0.8+Math.cos(t*0.0002)*0.1,y:0.4,c:pc(0)},{x:0.5,y:0.8+Math.sin(t*0.0004)*0.1,c:pc(2)}];
-  for(const orb of orbs){const grd=bgCtx.createRadialGradient(orb.x*w,orb.y*h,0,orb.x*w,orb.y*h,w*0.4);const {r,g,b}=hexToRGB(orb.c);grd.addColorStop(0,`rgba(${r},${g},${b},${(currentTheme.orbIntensity||0.1)+energy*0.05})`);grd.addColorStop(1,'transparent');bgCtx.fillStyle=grd;bgCtx.fillRect(0,0,w,h);}
-  bgCtx.strokeStyle=currentTheme.gridColor||'rgba(255,255,255,0.025)'; bgCtx.lineWidth=1;
-  for(let x=0;x<w;x+=60){bgCtx.beginPath();bgCtx.moveTo(x,0);bgCtx.lineTo(x,h);bgCtx.stroke();}
-  for(let y=0;y<h;y+=60){bgCtx.beginPath();bgCtx.moveTo(0,y);bgCtx.lineTo(w,y);bgCtx.stroke();}
+// ═══════════════════════════════════════════════════════════════════
+// SYMBOLS
+// ═══════════════════════════════════════════════════════════════════
+let floatSyms=[];
+class FloatSym {
+  constructor(type){
+    this.type=type; this.x=Math.random()*mC.width; this.y=mC.height+30;
+    this.vx=(Math.random()-0.5)*1.2; this.vy=-(Math.random()*1.5+0.5);
+    this.rot=Math.random()*Math.PI*2; this.rotS=(Math.random()-0.5)*0.04;
+    this.size=Math.random()*35+15; this.life=1; this.decay=Math.random()*0.003+0.001;
+    this.colorIdx=Math.floor(Math.random()*4); this.phase=Math.random()*Math.PI*2;
+  }
+  update(){this.x+=this.vx;this.y+=this.vy;this.rot+=this.rotS;this.life-=this.decay;}
+  draw(ctx,t){
+    if(this.life<=0)return;
+    const pulse=1+Math.sin(t*0.002+this.phase)*0.12;
+    ctx.save(); ctx.translate(this.x,this.y); ctx.rotate(this.rot);
+    ctx.globalAlpha=this.life*0.75;
+    ctx.fillStyle=pc(this.colorIdx); ctx.strokeStyle=pc(this.colorIdx);
+    ctx.shadowBlur=25; ctx.shadowColor=pc(this.colorIdx);
+    drawSym(ctx,this.type,this.size*pulse);
+    ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.restore();
+  }
+}
+function drawSym(ctx,type,s){
+  ctx.lineWidth=s*0.12;
+  switch(type){
+    case 'heart':ctx.beginPath();ctx.moveTo(0,-s*0.25);ctx.bezierCurveTo(s*0.5,-s*0.75,s,s*0.1,0,s*0.7);ctx.bezierCurveTo(-s,s*0.1,-s*0.5,-s*0.75,0,-s*0.25);ctx.fill();break;
+    case 'star':ctx.beginPath();for(let i=0;i<5;i++){const a1=(i*4*Math.PI/5)-Math.PI/2,a2=((i*4+2)*Math.PI/5)-Math.PI/2;i===0?ctx.moveTo(Math.cos(a1)*s,Math.sin(a1)*s):ctx.lineTo(Math.cos(a1)*s,Math.sin(a1)*s);ctx.lineTo(Math.cos(a2)*s*0.4,Math.sin(a2)*s*0.4);}ctx.closePath();ctx.fill();break;
+    case 'diamond':ctx.beginPath();ctx.moveTo(0,-s);ctx.lineTo(s*0.6,0);ctx.lineTo(0,s);ctx.lineTo(-s*0.6,0);ctx.closePath();ctx.fill();break;
+    case 'lightning':ctx.beginPath();ctx.moveTo(s*0.2,-s);ctx.lineTo(-s*0.15,0);ctx.lineTo(s*0.2,0);ctx.lineTo(-s*0.2,s);ctx.strokeStyle=ctx.fillStyle;ctx.lineWidth=s*0.22;ctx.stroke();break;
+    case 'note':ctx.beginPath();ctx.arc(0,s*0.4,s*0.35,0,Math.PI*2);ctx.fill();ctx.fillRect(s*0.3,-s*0.5,s*0.12,s*0.95);break;
+    case 'infinity':ctx.beginPath();for(let i=0;i<=100;i++){const tt=i/100*Math.PI*2;ctx.lineTo(Math.sin(tt)*s/(1+Math.cos(tt)*Math.cos(tt)),Math.sin(tt)*Math.cos(tt)*s/(1+Math.cos(tt)*Math.cos(tt)));}ctx.strokeStyle=ctx.fillStyle;ctx.stroke();break;
+    case 'flower':for(let i=0;i<6;i++){ctx.beginPath();const a=i*Math.PI/3;ctx.ellipse(Math.cos(a)*s*0.4,Math.sin(a)*s*0.4,s*0.3,s*0.15,a,0,Math.PI*2);ctx.fill();}ctx.beginPath();ctx.arc(0,0,s*0.2,0,Math.PI*2);ctx.fill();break;
+    case 'crown':ctx.beginPath();ctx.moveTo(-s,-s*0.2);ctx.lineTo(-s,s*0.4);ctx.lineTo(s,s*0.4);ctx.lineTo(s,-s*0.2);ctx.lineTo(s*0.5,s*0.1);ctx.lineTo(0,-s*0.6);ctx.lineTo(-s*0.5,s*0.1);ctx.closePath();ctx.fill();break;
+    case 'flame':ctx.beginPath();ctx.moveTo(0,s);ctx.bezierCurveTo(s*0.8,s*0.3,s*0.6,-s*0.2,0,-s);ctx.bezierCurveTo(-s*0.6,-s*0.2,-s*0.8,s*0.3,0,s);ctx.fill();break;
+    case 'snowflake':for(let i=0;i<6;i++){ctx.save();ctx.rotate(i*Math.PI/3);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-s);ctx.strokeStyle=ctx.fillStyle;ctx.lineWidth=2;ctx.stroke();ctx.beginPath();ctx.moveTo(-s*0.3,-s*0.5);ctx.lineTo(s*0.3,-s*0.5);ctx.stroke();ctx.restore();}break;
+    case 'moon':ctx.beginPath();ctx.arc(0,0,s,0.4,Math.PI*2-0.4);ctx.arc(s*0.3,0,s*0.75,Math.PI*2-0.4,0.4,true);ctx.closePath();ctx.fill();break;
+    case 'skull':ctx.beginPath();ctx.arc(0,-s*0.1,s*0.6,0,Math.PI*2);ctx.fill();ctx.fillStyle='#000';ctx.beginPath();ctx.arc(-s*0.2,-s*0.15,s*0.15,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(s*0.2,-s*0.15,s*0.15,0,Math.PI*2);ctx.fill();break;
+    case 'peace':ctx.beginPath();ctx.arc(0,0,s,0,Math.PI*2);ctx.strokeStyle=ctx.fillStyle;ctx.lineWidth=s*0.1;ctx.stroke();ctx.beginPath();ctx.moveTo(0,-s);ctx.lineTo(0,s);ctx.moveTo(0,0);ctx.lineTo(-s*0.7,s*0.7);ctx.moveTo(0,0);ctx.lineTo(s*0.7,s*0.7);ctx.stroke();break;
+    case 'eye':ctx.beginPath();ctx.ellipse(0,0,s,s*0.5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#000';ctx.beginPath();ctx.arc(0,0,s*0.3,0,Math.PI*2);ctx.fill();break;
+    case 'arrow':ctx.beginPath();ctx.moveTo(-s,0);ctx.lineTo(s*0.3,0);ctx.moveTo(s*0.3,-s*0.5);ctx.lineTo(s,0);ctx.lineTo(s*0.3,s*0.5);ctx.strokeStyle=ctx.fillStyle;ctx.lineWidth=s*0.15;ctx.stroke();break;
+    case 'spiral':ctx.beginPath();for(let i=0;i<80;i++){const tt=i/80*Math.PI*6;const r=tt/(Math.PI*6)*s;ctx.lineTo(Math.cos(tt)*r,Math.sin(tt)*r);}ctx.strokeStyle=ctx.fillStyle;ctx.lineWidth=2;ctx.stroke();break;
+    default:ctx.beginPath();ctx.arc(0,0,s*0.5,0,Math.PI*2);ctx.fill();
+  }
 }
 
-// ─── SONG TRANSITION ─────────────────────────────────────────────────────────
-let isTransitioning=false;
+// ═══════════════════════════════════════════════════════════════════
+// CAMERA EFFECTS
+// ═══════════════════════════════════════════════════════════════════
+function updateCamera(t){
+  // Smooth shake decay
+  CAM.shakeX*=0.85; CAM.shakeY*=0.85;
+  // Zoom pulse recovery
+  CAM.zoom+=(1-CAM.zoom)*0.08;
+  // Breathe
+  if(T.cameraEffects&&T.cameraEffects.includes('zoom_breathe')){
+    CAM.breathPhase+=0.008;
+    CAM.zoom=1+Math.sin(CAM.breathPhase)*0.015;
+  }
+  // Rotation drift
+  if(T.cameraEffects&&T.cameraEffects.includes('rotation_drift')){
+    CAM.rotation+=0.0003*(1+SM.chaos*0.5);
+  }
+}
+function applyCameraTransform(ctx){
+  const cx=mC.width/2,cy=mC.height/2;
+  ctx.translate(cx+CAM.shakeX,cy+CAM.shakeY);
+  ctx.scale(CAM.zoom,CAM.zoom);
+  ctx.rotate(CAM.rotation);
+  ctx.translate(-cx,-cy);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MAIN RENDER
+// ═══════════════════════════════════════════════════════════════════
+let lastT=0;
+function render(t){
+  requestAnimationFrame(render); lastT=t;
+  const w=mC.width,h=mC.height;
+  SM.energy+=(S.energy-SM.energy)*0.05;
+  SM.bpm+=(S.bpm-SM.bpm)*0.02;
+  SM.beatPulse*=0.91;
+  SM.chaos+=(T.chaos-SM.chaos)*0.03;
+
+  // Beat detection
+  if(t-S.lastBeat>S.beatInterval){
+    S.lastBeat=t; SM.beatPulse=1;
+    triggerBeatEffect();
+    if(T.symbols&&T.symbols.length>0&&Math.random()<T.symbolSpawnRate) floatSyms.push(new FloatSym(T.symbols[Math.floor(Math.random()*T.symbols.length)]));
+  }
+  updateCamera(t);
+
+  // BG
+  drawBackground(t,SM.energy);
+
+  // Main canvas
+  mX.clearRect(0,0,w,h);
+  mX.fillStyle=`rgba(0,0,0,${0.12+(1-SM.energy)*0.08})`;
+  mX.fillRect(0,0,w,h);
+
+  mX.save(); applyCameraTransform(mX);
+  drawGeometry(mX,t,SM.beatPulse);
+  updateDrawBeatFX(mX);
+  updateWave(SM.energy,t); drawWave(mX,t,SM.beatPulse);
+  for(const p of particles){p.update(SM.energy,t);p.draw(mX,t);}
+  floatSyms=floatSyms.filter(s=>s.life>0);
+  for(const s of floatSyms){s.update();s.draw(mX,t);}
+  mX.restore();
+
+  // FX canvas (not camera-transformed)
+  fxX.clearRect(0,0,w,h);
+  if(SM.beatPulse>0.3){
+    const g=fxX.createRadialGradient(w/2,h/2,0,w/2,h/2,w*0.5);
+    g.addColorStop(0,rgba(pc(0),SM.beatPulse*T.beatFlash)); g.addColorStop(1,'transparent');
+    fxX.fillStyle=g; fxX.fillRect(0,0,w,h);
+  }
+
+  // Progress
+  if(S.duration>0){const el=(Date.now()-S.analysisStart)/1000+S.progress/1000;document.getElementById('progress-bar').style.width=Math.min(100,(el/(S.duration/1000))*100)+'%';}
+}
+requestAnimationFrame(render);
+
+// ═══════════════════════════════════════════════════════════════════
+// TRANSITIONS
+// ═══════════════════════════════════════════════════════════════════
+let isTrans=false;
 function delay(ms){return new Promise(r=>setTimeout(r,ms));}
 
-async function playSongTransition(trackName,artistName,theme){
-  if(isTransitioning)return; isTransitioning=true;
-  const dissolve=document.getElementById('dissolve');
+async function songTransition(trackName,artistName,theme){
+  if(isTrans)return; isTrans=true;
+  const diss=document.getElementById('dissolve');
   const splash=document.getElementById('song-splash');
   document.getElementById('splash-track').textContent=trackName;
   document.getElementById('splash-track').style.color=theme.palette[0];
   document.getElementById('splash-artist').textContent=artistName;
-  document.getElementById('splash-vibe').textContent=(theme.label?'— '+theme.label+' —\n':'')+(theme.splashDesc||'');
+  document.getElementById('splash-vibe').textContent='— '+theme.label+' —\n'+(theme.splashDesc||'');
 
-  dissolve.style.transition='opacity 0.8s ease'; dissolve.classList.add('fade-in');
-  await delay(900);
-  currentTheme={...theme};
-  for(const s of geoShapes)s.reset(); for(const p of particles)p.reset(true);
-  beatRings=[]; floatingSymbols=[];
-  splash.classList.add('visible');
-  dissolve.style.transition='opacity 1.2s ease'; dissolve.classList.remove('fade-in');
-  await delay(1200);
-  await delay(2200);
-  splash.style.transition='opacity 1s ease'; splash.style.opacity='0';
+  diss.style.transition='opacity 0.9s ease'; diss.classList.add('active');
   await delay(1000);
+
+  // Apply new theme
+  Object.assign(T,theme);
+  curEl.style.background=T.palette[0];
+  document.getElementById('track-name').style.color=T.palette[0];
+  document.getElementById('mode-tag').style.color=T.palette[2]||T.palette[0];
+  document.getElementById('progress-bar').style.background=`linear-gradient(90deg,${T.palette[1]},${T.palette[0]})`;
+  document.getElementById('progress-bar').style.boxShadow=`0 0 10px ${T.palette[0]}`;
+
+  // Reinit scene
+  initGeo(); resetParticles(); beatFX=[]; floatSyms=[];
+  if(T.backgroundMode==='starfield')initStars();
+  if(T.backgroundMode==='tunnel')initTunnel();
+  if(T.backgroundMode==='matrix')initMatrix();
+  if(T.backgroundMode==='cityscape')initCity();
+
+  splash.classList.add('visible');
+  diss.style.transition='opacity 1.3s ease'; diss.classList.remove('active');
+  await delay(1400);
+  await delay(2400);
+  splash.style.transition='opacity 1.1s ease'; splash.style.opacity='0';
+  await delay(1100);
   splash.classList.remove('visible'); splash.style.opacity=''; splash.style.transition='';
-  isTransitioning=false;
+  isTrans=false;
 }
 
-// ─── RENDER LOOP ──────────────────────────────────────────────────────────────
-let lastT=0;
-function render(t){
-  requestAnimationFrame(render); lastT=t;
-  const w=canvas.width,h=canvas.height;
-  smooth.energy+=(state.energy-smooth.energy)*0.05;
-  smooth.bpm+=(state.bpm-smooth.bpm)*0.02;
-  smooth.beatPulse*=0.92;
-  if(t-state.lastBeat>state.beatInterval){
-    state.lastBeat=t; smooth.beatPulse=1;
-    spawnBeatRing(); if(Math.random()<0.3)spawnBeatRing();
-    // Spawn symbols on beat occasionally
-    if(currentTheme.symbols&&currentTheme.symbols.length>0&&Math.random()<0.15) spawnSymbols(currentTheme.symbols,1);
-  }
-  drawBackground(t,smooth.energy);
-  ctx.clearRect(0,0,w,h);
-  ctx.fillStyle=`rgba(0,0,8,${0.15+(1-smooth.energy)*0.1})`; ctx.fillRect(0,0,w,h);
-  for(const s of geoShapes){s.update(smooth.energy);s.draw(ctx,t,smooth.beatPulse);}
-  updateDrawRings(ctx);
-  updateWave(smooth.energy,smooth.bpm,t); drawWave(ctx,w,h,t,smooth.beatPulse);
-  for(const p of particles){p.update(smooth.energy,t);p.draw(ctx);}
-  // Floating symbols
-  floatingSymbols=floatingSymbols.filter(s=>s.life>0);
-  for(const s of floatingSymbols){s.update();s.draw(ctx,t);}
-  if(smooth.beatPulse>0.5){const r=smooth.beatPulse;const grd=ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,w*0.4);grd.addColorStop(0,rgbStr(pc(0),r*(currentTheme.beatFlash||0.15)));grd.addColorStop(1,'transparent');ctx.fillStyle=grd;ctx.fillRect(0,0,w,h);}
-  if(state.duration>0){const elapsed=(Date.now()-state.analysisStart)/1000+state.progress/1000;document.getElementById('progress-bar').style.width=Math.min(100,(elapsed/(state.duration/1000))*100)+'%';}
-}
-requestAnimationFrame(render);
-
-// ─── SPOTIFY API ──────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+// SPOTIFY API
+// ═══════════════════════════════════════════════════════════════════
 let token=null;
-async function spotifyGet(endpoint){
-  const res=await fetch('https://api.spotify.com/v1/'+endpoint,{headers:{Authorization:'Bearer '+token}});
-  if(res.status===401){const nt=await refreshAccessToken();if(nt){token=nt;}else{logout();}return null;}
-  if(!res.ok)return null;
-  if(res.status===204||res.headers.get('content-length')==='0')return null;
-  try{return await res.json();}catch(e){return null;}
+async function spGet(ep){
+  const r=await fetch('https://api.spotify.com/v1/'+ep,{headers:{Authorization:'Bearer '+token}});
+  if(r.status===401){const nt=await refreshToken();if(nt)token=nt;else logout();return null;}
+  if(!r.ok||r.status===204)return null;
+  try{return await r.json();}catch(e){return null;}
 }
-function logout(){localStorage.removeItem('sp_token');localStorage.removeItem('sp_token_ts');document.getElementById('login-screen').style.display='flex';document.getElementById('ui').style.display='none';document.getElementById('fs-btn').style.display='none';}
+function logout(){localStorage.removeItem('sp_t');localStorage.removeItem('sp_ts');document.getElementById('login-screen').style.display='flex';document.getElementById('ui').style.display='none';document.getElementById('fs-btn').style.display='none';}
 
-async function loadTrackData(trackId, trackName, artistName, artistIds) {
-  // Show AI thinking indicator
-  const aiTag = document.getElementById('ai-thinking');
-  aiTag.style.display = 'block';
-
-  // Check cache first
-  if (aiThemeCache[trackId]) {
-    aiTag.style.display = 'none';
-    playSongTransition(trackName, artistName, aiThemeCache[trackId]);
-    applyThemeToUI(aiThemeCache[trackId]);
-    return;
+// ═══════════════════════════════════════════════════════════════════
+// AI THEME LOADING
+// ═══════════════════════════════════════════════════════════════════
+async function loadAITheme(trackId,trackName,artistName,artistIds){
+  if(aiCache[trackId]){songTransition(trackName,artistName,aiCache[trackId]);updateStatsUI(aiCache[trackId]);return;}
+  // Fetch genres
+  let genres=[];
+  if(artistIds&&artistIds.length>0){
+    const ad=await spGet(`artists?ids=${artistIds.slice(0,3).join(',')}`);
+    if(ad&&ad.artists) genres=ad.artists.flatMap(a=>a.genres||[]).slice(0,8);
   }
-
-  // Fetch artist genres from Spotify (still available)
-  let genres = [];
-  if (artistIds && artistIds.length > 0) {
-    const artistData = await spotifyGet(`artists?ids=${artistIds.slice(0,3).join(',')}`);
-    if (artistData && artistData.artists) {
-      genres = artistData.artists.flatMap(a => a.genres || []).slice(0, 8);
-    }
-  }
-
-  // Call Claude for AI theme
-  const theme = await fetchAITheme(trackName, artistName, genres);
-  aiTag.style.display = 'none';
-
-  if (theme) {
-    aiThemeCache[trackId] = theme;
-    applyThemeToUI(theme);
-    playSongTransition(trackName, artistName, theme);
-  } else {
-    // Fallback: basic theme without AI
-    playSongTransition(trackName, artistName, DEFAULT_THEME);
-  }
+  // Call AI
+  try{
+    const r=await fetch('/api/theme',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({trackName,artistName,genres})});
+    if(!r.ok)throw new Error('API '+r.status);
+    const theme=await r.json();
+    // Validate
+    const safe={
+      label:theme.label||'UNKNOWN',splashDesc:theme.splashDesc||'',
+      palette:Array.isArray(theme.palette)&&theme.palette.length===4?theme.palette:['#ff006e','#8338ec','#06ffd8','#ffbe0b'],
+      bgColor:theme.bgColor||'#000008',
+      backgroundMode:['starfield','tunnel','glitch','cityscape','aurora','void','matrix','fractal'].includes(theme.backgroundMode)?theme.backgroundMode:'starfield',
+      backgroundIntensity:Math.min(1,Math.max(0.2,theme.backgroundIntensity||0.5)),
+      particleMode:['trails','fireflies','rain','confetti','sparks','snow','bubbles','shards','DNA','meteors'].includes(theme.particleMode)?theme.particleMode:'trails',
+      particleCount:Math.min(250,Math.max(60,parseInt(theme.particleCount)||100)),
+      particleSpeed:Math.min(3,Math.max(0.3,theme.particleSpeed||1)),
+      geometryMode:['polygons','tunnel_rings','dna_helix','grid_pulse','orbit_system','waveform_bars','kaleidoscope','fractal_tree'].includes(theme.geometryMode)?theme.geometryMode:'polygons',
+      geometryComplexity:Math.min(1,Math.max(0.3,theme.geometryComplexity||0.5)),
+      cameraEffects:Array.isArray(theme.cameraEffects)?theme.cameraEffects:[],
+      beatEffect:['explosion','ripple','flash','shockwave','nova','glitch_burst','color_shift','earthquake'].includes(theme.beatEffect)?theme.beatEffect:'ripple',
+      symbols:Array.isArray(theme.symbols)?theme.symbols.slice(0,4):[],
+      symbolSpawnRate:Math.min(0.4,Math.max(0.05,theme.symbolSpawnRate||0.1)),
+      waveAmp:Math.min(2.5,Math.max(0.3,theme.waveAmp||1)),
+      beatFlash:Math.min(0.4,Math.max(0.03,theme.beatFlash||0.15)),
+      orbIntensity:Math.min(0.2,Math.max(0.03,theme.orbIntensity||0.1)),
+      gridColor:theme.gridColor||'rgba(255,255,255,0.02)',
+      energy:Math.min(1,Math.max(0,theme.energy||0.5)),
+      chaos:Math.min(1,Math.max(0,theme.chaos||0.5)),
+    };
+    S.energy=safe.energy; S.bpm=120;
+    aiCache[trackId]=safe;
+    updateStatsUI(safe);
+    songTransition(trackName,artistName,safe);
+  }catch(e){console.error('[AI]',e);}
 }
 
-function applyThemeToUI(theme) {
-  document.getElementById('stat-mood').textContent = theme.label || '—';
-  document.getElementById('mode-tag').textContent = (theme.label||'LIVE') + ' — AI VISUAL ENGINE';
+function updateStatsUI(theme){
+  document.getElementById('stat-mood').textContent=theme.label||'—';
+  document.getElementById('stat-bg').textContent=(theme.backgroundMode||'—').toUpperCase();
+  document.getElementById('stat-fx').textContent=(theme.beatEffect||'—').toUpperCase();
+  document.getElementById('mode-tag').textContent=(theme.label||'AI')+ ' — VJ ENGINE';
 }
 
-const KEYS=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-let pollTimer=null, lastTrackId=null;
-
+// ═══════════════════════════════════════════════════════════════════
+// POLL + INIT
+// ═══════════════════════════════════════════════════════════════════
+let lastTrackId=null;
 async function pollPlayback(){
-  const data=await spotifyGet('me/player/currently-playing');
-  if(!data||!data.item)return;
-  const track=data.item, trackId=track.id;
-  state.progress=data.progress_ms||0; state.duration=track.duration_ms||1; state.analysisStart=Date.now();
-  // Estimate BPM from genre/default since audio-features is restricted
-  if(trackId!==lastTrackId){
-    lastTrackId=trackId;
-    state.trackName=track.name;
-    state.artistName=track.artists.map(a=>a.name).join(', ');
-    state.albumArt=track.album?.images?.[0]?.url||'';
-    const artistIds=track.artists.map(a=>a.id);
-    document.getElementById('track-name').textContent=state.trackName;
-    document.getElementById('artist-name').textContent=state.artistName;
-    if(state.albumArt)document.getElementById('album-art').src=state.albumArt;
-    document.getElementById('stat-bpm').textContent='~'+state.bpm;
-    document.getElementById('stat-energy').textContent='AI';
-    await loadTrackData(trackId,state.trackName,state.artistName,artistIds);
+  const d=await spGet('me/player/currently-playing');
+  if(!d||!d.item)return;
+  const track=d.item,tid=track.id;
+  S.progress=d.progress_ms||0; S.duration=track.duration_ms||1; S.analysisStart=Date.now();
+  if(tid!==lastTrackId){
+    lastTrackId=tid;
+    document.getElementById('track-name').textContent=track.name;
+    document.getElementById('artist-name').textContent=track.artists.map(a=>a.name).join(', ');
+    const art=track.album?.images?.[0]?.url||'';
+    if(art)document.getElementById('album-art').src=art;
+    loadAITheme(tid,track.name,track.artists.map(a=>a.name).join(', '),track.artists.map(a=>a.id));
   }
 }
+function startPolling(){pollPlayback();setInterval(pollPlayback,5000);}
 
-function startPolling(){pollPlayback();pollTimer=setInterval(pollPlayback,5000);}
-
-// ─── INIT ─────────────────────────────────────────────────────────────────────
-document.getElementById('login-btn').addEventListener('click',async()=>{
-  if(!CLIENT_ID||CLIENT_ID==='YOUR_CLIENT_ID'){alert('Client ID not set!');return;}
-  await redirectToSpotify();
-});
+document.getElementById('login-btn').addEventListener('click',async()=>{ await redirectToSpotify(); });
 
 async function init(){
-  const urlParams=new URLSearchParams(window.location.search);
-  const code=urlParams.get('code'),error=urlParams.get('error');
-  if(error){console.error('[Auth] Error:',error);return;}
-  if(code){window.history.replaceState({},document.title,'/');token=await exchangeCodeForToken(code);if(!token){console.error('[Auth] Exchange failed');return;}}
-  else{token=getStoredToken();if(!token)token=await refreshAccessToken();}
+  const p=new URLSearchParams(window.location.search),code=p.get('code'),err=p.get('error');
+  if(err){console.error('[Auth]',err);return;}
+  if(code){window.history.replaceState({},document.title,'/');token=await exchangeToken(code);if(!token)return;}
+  else{token=storedToken();if(!token)token=await refreshToken();}
   if(token){document.getElementById('login-screen').style.display='none';document.getElementById('ui').style.display='block';document.getElementById('fs-btn').style.display='block';startPolling();}
 }
 init();
