@@ -313,21 +313,29 @@ function getAuthURL() {
 }
 
 function getToken() {
-  // Check URL hash (implicit grant)
   const hash = window.location.hash.substring(1);
+  console.log('[Auth] hash present:', !!hash);
+  console.log('[Auth] pathname:', window.location.pathname);
   if (hash) {
     const p = new URLSearchParams(hash);
     const t = p.get('access_token');
     if (t) {
+      console.log('[Auth] Token found! Saving to localStorage.');
       localStorage.setItem('sp_token', t);
       localStorage.setItem('sp_token_ts', Date.now());
       window.history.replaceState({}, document.title, '/');
       return t;
+    } else {
+      console.log('[Auth] Hash present but no access_token. Hash was:', hash.substring(0,80));
     }
   }
   const stored = localStorage.getItem('sp_token');
   const ts = parseInt(localStorage.getItem('sp_token_ts') || '0');
-  if (stored && Date.now() - ts < 3600000) return stored;
+  if (stored && Date.now() - ts < 3600000) {
+    console.log('[Auth] Using stored token');
+    return stored;
+  }
+  console.log('[Auth] No token available.');
   return null;
 }
 
