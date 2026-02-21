@@ -1,98 +1,83 @@
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const { trackName, artistName, genres, titleKeywords, artistContext, tempoClass } = req.body;
+  const { trackName, artistName, genres, titleKeywords, artistContext, tempoClass, forbiddenScenes } = req.body;
   if (!trackName || !artistName) return res.status(400).json({ error: 'Missing fields' });
-  const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
-  if (!ANTHROPIC_KEY) return res.status(500).json({ error: 'API key not configured' });
+  const KEY = process.env.ANTHROPIC_API_KEY;
+  if (!KEY) return res.status(500).json({ error: 'No API key' });
 
-  const prompt = `You are the world's most creative music visualizer director. You design IMMERSIVE, CINEMATIC visual worlds — not abstract shapes, but real environments people feel transported INTO.
+  const forbidden = (forbiddenScenes || []).join(', ');
 
-═══ SONG INFO ═══
-Track: "${trackName}"
-Artist: ${artistName}
-Genres: ${(genres || []).join(', ') || 'unknown'}
-Title keywords: ${(titleKeywords || []).join(', ') || 'none extracted'}
-Artist visual identity: ${artistContext || 'unknown artist — infer from genre/era'}
-Tempo class: ${tempoClass || 'medium'}
+  const prompt = `You are the world's most creative concert VJ director, responsible for designing TOTALLY IMMERSIVE festival stage visuals. Think Daft Punk pyramid, deadmau5 cube, Eric Prydz holographics — complete cinematic worlds, not abstract shapes.
 
-═══ YOUR JOB ═══
-Design a complete visual world for this specific song. Be AGGRESSIVELY specific. Use the title keywords, artist identity, and genre to make choices that feel made FOR THIS SONG.
+SONG: "${trackName}" by ${artistName}
+GENRES: ${(genres||[]).join(', ')||'unknown'}
+TITLE KEYWORDS: ${(titleKeywords||[]).join(', ')||'none'}
+ARTIST CONTEXT: ${artistContext||'unknown — infer from genres'}
+TEMPO: ${tempoClass||'medium'}
+⛔ FORBIDDEN SCENES (already used recently — DO NOT pick these): ${forbidden||'none'}
 
-Examples of great specificity:
-- "Too Close to the Sun" → massive burning sun centerpiece, desert heat shimmer, Icarus silhouette, scorched color palette
-- "Stayin Alive" by Bee Gees → spinning disco ball centerpiece, 70s dance floor, crowd silhouettes, warm amber/gold palette
-- "Marshmello - Alone" → marshmallow face centerpiece (white round face, black X eyes), EDM festival crowd, laser beams
-- "Space Oddity" by Bowie → Earth from orbit, astronaut silhouette, deep space, satellite dish object  
-- "Hotel California" → desert highway driving forward at night, headlights piercing dark, hotel sign in distance
-- "Under the Sea" → underwater swim-through with coral, fish parallax layers, caustic light
-- "Thunderstruck" by AC/DC → lightning storm, no centerpiece (raw power), electric bolts, crowd hands
-- "Blinding Lights" by Weeknd → neon city driving at night, speed blur, 80s retro pink/purple
-- "Yellow" by Coldplay → vast open sky, sun centerpiece, yellow particles like dandelions
+═══════════════════════════════════════
+AVAILABLE SCENE TYPES — pick the ONE that fits this song best:
+═══════════════════════════════════════
+• WARP_SPEED — cockpit shooting through hyperspace, star streaks, speed tunnel
+• LAVA_WORLD — erupting volcano POV, rivers of molten fire, embers raining, heat shimmer
+• CYBER_GRID — Tron neon wireframe city, flying at ground level through canyons of light
+• DEEP_SEA — pitch black ocean, bioluminescent creatures approaching from darkness
+• STORM_CHASER — inside a tornado, lightning everywhere, debris flying past camera
+• JUNGLE_RAVE — prehistoric jungle, massive glowing creatures, tribal neon energy
+• DISCO_DIMENSION — infinite mirrored dance floor, spinning chandeliers, light beams
+• ACID_TRIP — melting fractals, impossible geometry, reality warping
+• SPACE_STATION — orbiting Earth, floating debris, solar flares, spacewalk
+• NEON_CATHEDRAL — enormous gothic arches of light, stained glass windows, godlike scale
+• CLASSIC_ARCADE — retro pixel world, pac-man mazes, sprite characters, 8-bit reality
 
-═══ RETURN ONLY RAW JSON ═══
+═══════════════════════════════════════
+SONG-SPECIFIC CENTERPIECE — the dominant visual object (or null):
+═══════════════════════════════════════
+null, "sun", "moon", "planet", "disco_ball", "marshmello_helmet", "fireball", "black_hole", "earth_orbit", "vinyl_record", "microphone", "skull", "diamond", "eye", "volcano_peak", "robot_head", "crystal_ball", "wormhole", "neon_cross", "pixel_character", "dinosaur_head", "chandelier", "trident", "lotus"
+
+═══════════════════════════════════════
+CRITICAL RULES:
+═══════════════════════════════════════
+1. NO floating circles. NO generic orbs. NO abstract shapes pulsing.
+2. The scene must feel like you are INSIDE IT and MOVING THROUGH IT.
+3. Use title keywords literally — "fire" → lava world, "ocean" → deep sea, "sun" → sun centerpiece
+4. Artist signatures matter — Marshmello = marshmello_helmet, disco songs = disco_ball, etc.
+5. Be cinematically committed — describe a world so specific a film director could shoot it.
+6. The centerpiece should feel earned and specific, not decorative.
+
+Return ONLY raw JSON:
 {
-  "label": "ALL CAPS 3-5 word evocative scene title",
-  "splashDesc": "12-18 word cinematic description of the world you're creating",
+  "scene": one of the scene types above,
+  "label": "ALL CAPS 4-6 word cinematic title",
+  "splashDesc": "15-20 word vivid description — what does it FEEL like to be inside this world?",
   "palette": ["#hex1","#hex2","#hex3","#hex4"],
-  "bgColor": "#very dark hex",
-
-  "journeyMode": one of: "fly_space","drive_city","swim_underwater","fly_storm","drift_blossom","static_scene","strobe_assault","tunnel_zoom","silhouette_sky","particle_storm",
-
-  "parallaxLayers": integer 2-5 (depth layers for journey feel),
-  "journeySpeed": 0.3-3.0,
-  "journeyTilt": 0.0-0.4 (how much the path curves/steers),
-  "cameraShakeOnBeat": true/false,
-
-  "centerpiece": one of null, "sun","moon","planet","disco_ball","marshmello","fireball","prism","black_hole","earth","skull","diamond","eye_of_god","vinyl_record","microphone","crown","hourglass","crystal","lotus","compass","lightning_orb","portal","yin_yang","atom","speaker",
-  "centerpieceScale": 0.0-1.0 (0=absent, 0.3=subtle, 0.7=prominent, 1.0=fills screen),
-  "centerpieceBehavior": one of: "rotate","pulse_beat","orbit_slow","breathe","strobe","fixed","rise_set","spin_fast",
-
-  "silhouetteObject": one of null, "icarus","astronaut","dancer","guitarist","surfer","diver","runner","figure_horizon","city_skyline","mountain","palm_tree","lighthouse",
-  "silhouettePosition": "left"/"center"/"right"/"horizon",
-
-  "environmentLayers": [
-    array of 2-4 objects: {"type": string, "depth": 0.1-1.0, "density": 0.1-1.0, "speed": 0.1-3.0}
-    types: "stars","city_buildings","trees","coral","bubbles","rain","snow","embers","petals","clouds","desert_dunes","highway_lines","crowd","lasers","northern_lights","asteroids","fish","jellyfish","fireflies"
-  ],
-
-  "beatEffect": one of: "world_flash","speed_burst","lightning_crack","bass_ripple","color_explosion","strobe_cut","crowd_surge","depth_slam","sun_flare",
-
-  "surpriseMode": one of null, "lyrics_dissolve","strobe_assault","silhouette_moment","tunnel_zoom","particle_storm",
-  "surpriseModeChance": 0.0-1.0,
-
-  "titleWordEffects": array of up to 3 strings extracted from track title to display as dissolving text,
-
-  "colorShiftOnBeat": true/false,
-  "progressionStyle": one of: "build_intensity","storm_arrival","sunrise","journey_forward","pulse_steady",
-
+  "bgColor": "#very dark base hex",
+  "centerpiece": string or null,
+  "centerpieceScale": 0.0-1.0,
+  "centerpieceBehavior": one of "rotate","spin_fast","pulse_beat","breathe","orbit_slow","rise_set","fixed","strobe",
+  "sceneSpeed": 0.3-3.0,
+  "sceneIntensity": 0.3-1.0,
+  "beatReaction": one of "speed_burst","shockwave","color_invert","creature_surge","world_crack","bass_slam","strobe_cut",
+  "colorShift": true/false,
   "energy": 0.0-1.0,
-  "chaos": 0.0-1.0,
-  "speed": 0.3-2.0
-}
-
-RULES:
-- centerpiece null = no object (valid for raw/powerful songs like metal, classical)
-- journeyMode "static_scene" = no forward movement (for ballads, ambient)
-- Be SPECIFIC to this artist and title — if title has a concrete noun, use it
-- Surprise modes should only activate for truly unique songs (surpriseModeChance 0.6-0.9 for wild songs, 0.0 for ballads)
-- palette must match the EMOTIONAL CORE of the song, not just genre defaults`;
+  "chaos": 0.0-1.0
+}`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1100, messages: [{ role: 'user', content: prompt }] })
+      headers: { 'Content-Type': 'application/json', 'x-api-key': KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 900,
+        messages: [{ role: 'user', content: prompt }] })
     });
-    const data = await response.json();
+    const data = await r.json();
     const text = data.content?.[0]?.text || '';
-    const clean = text.replace(/```json[\s\S]*?```/g, m => m.slice(7, -3)).replace(/```/g, '').trim();
-    // Extract JSON object
-    const match = clean.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error('No JSON found');
-    const theme = JSON.parse(match[0]);
-    return res.status(200).json(theme);
-  } catch (e) {
-    console.error('Theme error:', e);
-    return res.status(500).json({ error: 'Theme generation failed', detail: e.message });
+    const match = text.replace(/```json|```/g, '').match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('No JSON');
+    return res.status(200).json(JSON.parse(match[0]));
+  } catch(e) {
+    console.error(e);
+    return res.status(500).json({ error: e.message });
   }
 }
