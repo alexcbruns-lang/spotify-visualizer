@@ -1,75 +1,98 @@
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const { trackName, artistName, genres } = req.body;
+  const { trackName, artistName, genres, titleKeywords, artistContext, tempoClass } = req.body;
   if (!trackName || !artistName) return res.status(400).json({ error: 'Missing fields' });
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTHROPIC_KEY) return res.status(500).json({ error: 'API key not configured' });
 
-  const prompt = `You are a world-class VJ (video jockey) and immersive experience designer. You create living, breathing visual WORLDS that people feel like they are INSIDE — not watching abstract shapes flash.
+  const prompt = `You are the world's most creative music visualizer director. You design IMMERSIVE, CINEMATIC visual worlds — not abstract shapes, but real environments people feel transported INTO.
 
-Song: "${trackName}" by ${artistName}
+═══ SONG INFO ═══
+Track: "${trackName}"
+Artist: ${artistName}
 Genres: ${(genres || []).join(', ') || 'unknown'}
+Title keywords: ${(titleKeywords || []).join(', ') || 'none extracted'}
+Artist visual identity: ${artistContext || 'unknown artist — infer from genre/era'}
+Tempo class: ${tempoClass || 'medium'}
 
-Design a complete immersive environment for this song. Think cinematically — what WORLD does this song live in? What does it feel like to be INSIDE this song?
+═══ YOUR JOB ═══
+Design a complete visual world for this specific song. Be AGGRESSIVELY specific. Use the title keywords, artist identity, and genre to make choices that feel made FOR THIS SONG.
 
-Return ONLY raw JSON (no markdown):
+Examples of great specificity:
+- "Too Close to the Sun" → massive burning sun centerpiece, desert heat shimmer, Icarus silhouette, scorched color palette
+- "Stayin Alive" by Bee Gees → spinning disco ball centerpiece, 70s dance floor, crowd silhouettes, warm amber/gold palette
+- "Marshmello - Alone" → marshmallow face centerpiece (white round face, black X eyes), EDM festival crowd, laser beams
+- "Space Oddity" by Bowie → Earth from orbit, astronaut silhouette, deep space, satellite dish object  
+- "Hotel California" → desert highway driving forward at night, headlights piercing dark, hotel sign in distance
+- "Under the Sea" → underwater swim-through with coral, fish parallax layers, caustic light
+- "Thunderstruck" by AC/DC → lightning storm, no centerpiece (raw power), electric bolts, crowd hands
+- "Blinding Lights" by Weeknd → neon city driving at night, speed blur, 80s retro pink/purple
+- "Yellow" by Coldplay → vast open sky, sun centerpiece, yellow particles like dandelions
 
+═══ RETURN ONLY RAW JSON ═══
 {
-  "label": "3-4 word evocative ALL CAPS scene title (e.g. MIDNIGHT RAINSTORM, DEEP SPACE DRIFT, NEON CITY PULSE)",
-  "splashDesc": "10-15 word cinematic description of the world (e.g. 'rain-soaked streets reflect neon as thunder shakes the city')",
+  "label": "ALL CAPS 3-5 word evocative scene title",
+  "splashDesc": "12-18 word cinematic description of the world you're creating",
   "palette": ["#hex1","#hex2","#hex3","#hex4"],
   "bgColor": "#very dark hex",
 
-  "world": one of: "warp_tunnel","rainstorm","neon_city","underwater","lightning_storm","aurora","deep_space","desert_heat","snowstorm","volcanic","cherry_blossom","foggy_forest",
+  "journeyMode": one of: "fly_space","drive_city","swim_underwater","fly_storm","drift_blossom","static_scene","strobe_assault","tunnel_zoom","silhouette_sky","particle_storm",
 
-  "worldIntensity": 0.3-1.0,
+  "parallaxLayers": integer 2-5 (depth layers for journey feel),
+  "journeySpeed": 0.3-3.0,
+  "journeyTilt": 0.0-0.4 (how much the path curves/steers),
+  "cameraShakeOnBeat": true/false,
 
-  "ambientObjects": array of 0-3 large ambient scene objects from: "disco_ball","moon","planet_rings","sun","comet","city_skyline","mountain_silhouette","jellyfish","whale","creature","crowd_silhouette","clock_tower","lighthouse",
+  "centerpiece": one of null, "sun","moon","planet","disco_ball","marshmello","fireball","prism","black_hole","earth","skull","diamond","eye_of_god","vinyl_record","microphone","crown","hourglass","crystal","lotus","compass","lightning_orb","portal","yin_yang","atom","speaker",
+  "centerpieceScale": 0.0-1.0 (0=absent, 0.3=subtle, 0.7=prominent, 1.0=fills screen),
+  "centerpieceBehavior": one of: "rotate","pulse_beat","orbit_slow","breathe","strobe","fixed","rise_set","spin_fast",
 
-  "floatingObjects": array of 0-4 thematic floating objects from: "disco_ball","moon","planets","stars","raindrops","snowflakes","lightning_bolts","bubbles","fireflies","petals","embers","leaves","jellyfish","fish","crowd_hands","guitar_silhouette","piano_keys","neon_signs","clouds","birds",
+  "silhouetteObject": one of null, "icarus","astronaut","dancer","guitarist","surfer","diver","runner","figure_horizon","city_skyline","mountain","palm_tree","lighthouse",
+  "silhouettePosition": "left"/"center"/"right"/"horizon",
 
-  "beatReaction": one of: "wind_gust","thunder_flash","speed_burst","depth_pulse","color_wave","lightning_strike","crowd_surge","rain_burst",
+  "environmentLayers": [
+    array of 2-4 objects: {"type": string, "depth": 0.1-1.0, "density": 0.1-1.0, "speed": 0.1-3.0}
+    types: "stars","city_buildings","trees","coral","bubbles","rain","snow","embers","petals","clouds","desert_dunes","highway_lines","crowd","lasers","northern_lights","asteroids","fish","jellyfish","fireflies"
+  ],
 
-  "progressionStyle": one of: "intensity_build","color_shift","depth_increase","storm_build","emergence",
+  "beatEffect": one of: "world_flash","speed_burst","lightning_crack","bass_ripple","color_explosion","strobe_cut","crowd_surge","depth_slam","sun_flare",
 
-  "cameraMode": one of: "forward_travel","gentle_drift","orbit","stationary_immersive","slow_zoom",
+  "surpriseMode": one of null, "lyrics_dissolve","strobe_assault","silhouette_moment","tunnel_zoom","particle_storm",
+  "surpriseModeChance": 0.0-1.0,
 
-  "waveStyle": one of: "horizon_line","rain_streaks","aurora_bands","ripple_surface","none",
+  "titleWordEffects": array of up to 3 strings extracted from track title to display as dissolving text,
+
+  "colorShiftOnBeat": true/false,
+  "progressionStyle": one of: "build_intensity","storm_arrival","sunrise","journey_forward","pulse_steady",
 
   "energy": 0.0-1.0,
   "chaos": 0.0-1.0,
-  "speed": 0.3-2.0,
-  "depth": 0.3-1.0
+  "speed": 0.3-2.0
 }
 
-CRITICAL RULES:
-- NO central circles or shapes pulsing in the middle of the screen
-- Beat reactions must feel like the WORLD reacting (thunder, wind, speedup) NOT a shape appearing
-- Objects float naturally in the environment, not flash
-- Think: what world does this song LIVE IN?
-
-Song-specific examples:
-- "Singing in the Rain": rainstorm world, raindrops floating, moon ambient, thunder_flash beat, rain_burst progression
-- "Stayin Alive": neon_city world, disco_ball + crowd_hands floating, city_skyline ambient, crowd_surge beat
-- "Clair de Lune": aurora world, moon + jellyfish floating, gentle_drift camera, none waveStyle
-- "Thunderstruck": lightning_storm world, lightning_bolts floating, thunder_flash beat, storm_build progression
-- "Space Oddity": deep_space world, planet_rings + comet ambient, forward_travel camera, speed_burst beat
-- "Under the Sea": underwater world, jellyfish + fish + bubbles floating, gentle_drift camera
-- "Hotel California": desert_heat world, city_skyline + moon ambient, slow_zoom camera`;
+RULES:
+- centerpiece null = no object (valid for raw/powerful songs like metal, classical)
+- journeyMode "static_scene" = no forward movement (for ballads, ambient)
+- Be SPECIFIC to this artist and title — if title has a concrete noun, use it
+- Surprise modes should only activate for truly unique songs (surpriseModeChance 0.6-0.9 for wild songs, 0.0 for ballads)
+- palette must match the EMOTIONAL CORE of the song, not just genre defaults`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 900, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1100, messages: [{ role: 'user', content: prompt }] })
     });
     const data = await response.json();
     const text = data.content?.[0]?.text || '';
-    const clean = text.replace(/```json|```/g, '').trim();
-    const theme = JSON.parse(clean);
+    const clean = text.replace(/```json[\s\S]*?```/g, m => m.slice(7, -3)).replace(/```/g, '').trim();
+    // Extract JSON object
+    const match = clean.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('No JSON found');
+    const theme = JSON.parse(match[0]);
     return res.status(200).json(theme);
   } catch (e) {
     console.error('Theme error:', e);
-    return res.status(500).json({ error: 'Theme generation failed' });
+    return res.status(500).json({ error: 'Theme generation failed', detail: e.message });
   }
 }
