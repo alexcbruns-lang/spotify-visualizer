@@ -21,29 +21,15 @@
 <body>
   <div>CONNECTING TO SPOTIFY...</div>
   <script>
-    // Spotify returns token in the hash: /callback#access_token=...
-    const hash = window.location.hash.substring(1);
-    if (hash) {
-      const params = new URLSearchParams(hash);
-      const token = params.get('access_token');
-      const expiresIn = params.get('expires_in');
-      if (token) {
-        localStorage.setItem('sp_token', token);
-        localStorage.setItem('sp_token_ts', Date.now());
-        // Redirect to root without the hash
-        window.location.replace('/');
-      } else {
-        document.body.innerHTML = '<div style="color:#ff006e;font-family:monospace;padding:2rem;">AUTH ERROR: No token in response. <a href="/" style="color:#06ffd8">Try again</a></div>';
-      }
+    // PKCE flow returns ?code=... as a query param — pass it to index.html
+    const params = window.location.search; // e.g. "?code=xxx&state=yyy"
+    const error = new URLSearchParams(params).get('error');
+    if (error) {
+      window.location.href = '/?error=' + encodeURIComponent(error);
+    } else if (params) {
+      window.location.href = '/' + params;
     } else {
-      // No hash — Spotify might have returned an error
-      const params = new URLSearchParams(window.location.search);
-      const error = params.get('error');
-      if (error) {
-        document.body.innerHTML = '<div style="color:#ff006e;font-family:monospace;padding:2rem;">SPOTIFY ERROR: ' + error + '. <a href="/" style="color:#06ffd8">Try again</a></div>';
-      } else {
-        window.location.replace('/');
-      }
+      window.location.href = '/';
     }
   </script>
 </body>
