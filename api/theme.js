@@ -16,51 +16,76 @@ DURATION: ${songDurationSecs||180}s
 SESSION: ${sessionStreak||0} songs — ${streakDesc||'early'}
 
 ══════════════════════════════════════
-YOU MUST PICK FROM THIS SHORTLIST ONLY:
+PICK YOUR SCENE FROM THIS LIST ONLY — these are overdue for variety:
 ${(sceneShortlist||[]).slice(0,12).join(', ')}
-
-These are the scenes not recently used. Pick the best THEMATIC FIT from this list. Do not pick anything outside this list.
+Choose the best thematic fit. Do NOT pick outside this list.
 ══════════════════════════════════════
 
-⛔ FORBIDDEN CENTERPIECES: ${(forbiddenCenterpieces||[]).join(', ')||'none'}
+⛔ FORBIDDEN CENTERPIECES (do not repeat): ${(forbiddenCenterpieces||[]).join(', ')||'none'}
 
-═══ AVAILABLE CENTERPIECES ═══
-null, sun, moon, planet, disco_ball, marshmello_helmet, fireball, black_hole, earth_orbit, vinyl_record, microphone, skull, wormhole, dinosaur_head, chandelier, crystal_ball, robot_head, pixel_character, volcano_peak, neon_cross, lotus, eye, trident, comet, supernova, grim_reaper, angel_wings, alien_head, sugar_skull, zeus_face, dragon_head, roulette_wheel, hourglass, treasure_chest, clock_face, crown, flaming_skull, dna_helix, mandala, tesseract, ankh
+═══ CENTERPIECE — CHOOSE ONE ═══
+Every centerpiece is a UNIQUE hand-drawn canvas illustration. Pick the one that best fits this song's identity.
 
-═══ CENTERPIECE RULES — BE BOLD ═══
-- null is VALID and encouraged (use for ~20% of songs — heavy, atmospheric, instrumental)
-- centerpieceScale: 0.0 (none) to 1.5 (nearly fills screen). Go BIG or tiny — avoid always picking 0.4-0.6
-- centerpieceX / centerpieceY: 0.0-1.0 screen fraction. CENTER IS BORING — use 0.3, 0.7, 0.15, 0.8 etc
-- centerpieceBehavior: rotate | spin_fast | pulse_beat | breathe | orbit_slow | rise_set | fixed | strobe | bounce | drift | watermark
-  • bounce = careens around screen hitting edges
-  • drift = slow dreamy floating figure-8
-  • watermark = huge faint ghost behind everything (use with large scale)
-  • rise_set = rises from bottom, sets below horizon
-- Match artist: Marshmello → marshmello_helmet | Daft Punk → robot_head | dark rap → skull/grim_reaper
+CHARACTER CENTERPIECES (distinctive faces/creatures):
+skull, flaming_skull, skull_crossbones, smiley, demon_face, alien_head, robot_head, wolf_head, eagle, dragon
+
+SYMBOL CENTERPIECES (graphic icons):
+peace_sign, lightning_bolt, yin_yang, star, ankh, trident, eye, mandala
+
+OBJECT CENTERPIECES (real things):
+flame, diamond, coffin, crown, hourglass, clock_face, chandelier, crystal
+
+SPACE/COSMIC:
+sun, moon, planet, comet, black_hole, wormhole, ufo, astronaut, rocket
+
+MUSIC:
+vinyl_record, turntable, disco_ball
+
+COMPLEX:
+dna_helix, tesseract, lotus
+
+null = no centerpiece (use for ~20% of songs — heavy instrumentals, ambient, metal)
+
+═══ CENTERPIECE MATCHING GUIDE ═══
+- Marshmello → robot_head or skull (his aesthetic)
+- Daft Punk → robot_head
+- Dark rap / trap → skull, flaming_skull, demon_face, coffin
+- Pop / upbeat → smiley, star, disco_ball, peace_sign
+- Rock / metal → lightning_bolt, skull_crossbones, flaming_skull
+- Space / cosmic → black_hole, comet, planet, ufo, astronaut
+- Love songs → lotus, eye, yin_yang, mandala
+- EDM / rave → disco_ball, lightning_bolt, smiley
+- Reggae / peace → peace_sign, lotus, yin_yang
+- Country / folk → crown, hourglass, vinyl_record
+- Nature → lotus, sun, moon, eagle, wolf_head
+- High session streak → demon_face, tesseract, black_hole, flaming_skull
+- Explicit + dark → flaming_skull, demon_face, coffin, skull_crossbones
+
+═══ CENTERPIECE POSITION ═══
+centerpieceX / centerpieceY: 0.0–1.0 fraction of screen. CENTER (0.5, 0.5) IS BORING.
+Try: 0.3, 0.7, 0.25, 0.75, 0.8, 0.2 — AI should be creative with placement.
+centerpieceScale: 0.0–1.4. Go BIG (0.8–1.2) or tiny accent (0.1–0.25). Avoid always 0.4–0.6.
+centerpieceBehavior: rotate | spin_fast | pulse_beat | breathe | orbit_slow | rise_set | fixed | strobe | bounce | drift | watermark
 
 ═══ BEAT REACTIONS — PICK 3-4 ═══
-Random variety each beat from your pool:
 speed_burst, shockwave, color_invert, world_crack, bass_slam, strobe_cut, creature_surge, cannon_fire, lightning_strike, gravity_wave, petal_burst, pixel_explode, skull_surge, coin_shower, tentacle_surge
 
-═══ PALETTE RULES ═══
-Be bold and specific. Ugly/clashing palettes are fine if they fit the song.
-Examples: industrial metal → [#ff4400, #333333, #ff8800, #111111]
-dreamy pop → [#ff99cc, #cc99ff, #99ccff, #ffff99]
-dark hip-hop → [#8b0000, #1a1a1a, #c8a000, #2d0030]
-bgColor should be VERY dark, matching the mood.
+═══ PALETTE ═══
+Be bold and specific. Match the song's emotional character.
+bgColor: very dark hex matching the mood.
 
-Return ONLY raw JSON (no markdown):
+Return ONLY raw JSON — no markdown, no explanation:
 {
-  "scene": string (MUST be from shortlist above),
-  "label": "ALL CAPS 4-6 word cinematic title",
-  "splashDesc": "15-20 word vivid description of what it feels like inside this world",
+  "scene": "string from shortlist",
+  "label": "ALL CAPS 4-6 WORD CINEMATIC TITLE",
+  "splashDesc": "15-20 word vivid description of being inside this world",
   "palette": ["#hex1","#hex2","#hex3","#hex4"],
   "bgColor": "#very dark hex",
-  "centerpiece": string or null,
-  "centerpieceScale": 0.0-1.5,
+  "centerpiece": "name or null",
+  "centerpieceScale": 0.0-1.4,
   "centerpieceX": 0.0-1.0,
   "centerpieceY": 0.0-1.0,
-  "centerpieceBehavior": string,
+  "centerpieceBehavior": "string",
   "beatReactions": ["r1","r2","r3","r4"],
   "sceneSpeed": 0.3-3.0,
   "sceneIntensity": 0.3-1.0,
@@ -72,7 +97,7 @@ Return ONLY raw JSON (no markdown):
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 800,
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 700,
         messages: [{ role: 'user', content: prompt }] })
     });
     const data = await r.json();
