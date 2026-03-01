@@ -245,7 +245,7 @@ function setSD(val) { SD = val; }
 // These need to be settable from multiple modules
 // In module mode: accessed via xxx
 // In bundled mode: these become bare let declarations
-let token = null, lastTid = null, inTrans = false;
+let token = null, lastTid = null, appliedTid = null, inTrans = false;
 let songProg = 0, progMult = 0.6;
 let cpRot = 0, cpPh = 0, cpOrbit = 0;
 let cpBounceX = 0, cpBounceY = 0;
@@ -8828,13 +8828,14 @@ function getArtistCtx(name){const k=name.toLowerCase();for(const[n,v]of Object.e
 function extractKW(title){const stop=new Set(['a','an','the','in','of','to','and','or','i','my','me','you','is','it','by','on','for','with','as','be','was']);return title.toLowerCase().replace(/[^\w\s]/g,'').split(/\s+/).filter(w=>w.length>2&&!stop.has(w)).slice(0,6);}
 
 async function loadTheme(tid,name,artist,artistIds,isExplicit,durationMs){
-  // Skip if this exact theme is already active (prevents re-splashing same song)
-  if(aiCache[tid] && tid === lastTid && !inTrans){return;}
-  // If cached and this IS the current song, apply immediately (instant transition)
+  // Skip if this exact theme is already active AND showing (prevents re-splashing same song)
+  if(aiCache[tid] && tid === appliedTid && !inTrans){return;}
+  // If cached and this IS the current song, apply immediately (instant preloaded transition)
   if(aiCache[tid] && tid === lastTid){
     const cached=aiCache[tid];
     recordScene(cached.scene);recordCP(cached.centerpiece);
     applyTheme(name,artist,cached);
+    appliedTid=tid;
     return;
   }
   // If cached but NOT the current song, this is a preloaded theme — nothing to do yet
@@ -8864,6 +8865,7 @@ async function loadTheme(tid,name,artist,artistIds,isExplicit,durationMs){
     if(tid === lastTid){
       recordScene(scene);recordCP(cp);
       applyTheme(name,artist,theme);
+      appliedTid=tid;
     } else {
       console.log('[preload] theme cached for:', name, '→', scene);
     }
@@ -9470,6 +9472,7 @@ MusicProviders.local = {
         this._audioEl.currentTime = 0;
         this._audioEl.play();
         lastTid = null;  // Force new theme on loop
+        appliedTid = null;
       };
     } catch (e) {
       console.error('[local] file load failed', e);
@@ -9612,6 +9615,7 @@ function stopProvider() {
   }
   token = null;
   lastTid = null;
+  appliedTid = null;
   document.getElementById('login').style.display = 'flex';
   document.getElementById('ui').style.display = 'none';
   document.getElementById('fsBtn').style.display = 'none';
