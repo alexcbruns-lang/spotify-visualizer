@@ -8780,15 +8780,38 @@ function triggerBeat() {
 
 
 
+// ── Anticipatory wash — called before song ends to hide scene swap ──
+let _washPrepped = false;
+function prepTransitionWash(theme) {
+  if (inTrans || _washPrepped) return;
+  _washPrepped = true;
+  const wash = document.getElementById('wash');
+  const c = h2r(theme.palette[0]);
+  wash.style.background = `radial-gradient(ellipse at 50% 40%,rgba(${c.r},${c.g},${c.b},0.92) 0%,rgba(0,0,0,0.97) 70%)`;
+  wash.style.transition = 'opacity 1.1s ease';
+  wash.style.opacity = '1';
+  console.log('[transition] wash pre-started for seamless swap');
+}
+
 async function transition(name,artist,theme){
   if(inTrans)return;inTrans=true;
   devSurpriseLock=false; // release dev lock — real playback takes over
   devSurpriseLock=false; // release dev lock — real playback takes over
   const wash=document.getElementById('wash'),splash=document.getElementById('splash');
   const c=h2r(theme.palette[0]);
-  wash.style.background=`radial-gradient(ellipse at 50% 40%,rgba(${c.r},${c.g},${c.b},0.92) 0%,rgba(0,0,0,0.97) 70%)`;
-  wash.style.transition='opacity 1.1s ease';wash.style.opacity='1';
-  await delay(1200);
+  if (_washPrepped) {
+    // Wash already visible — just wait a short beat for it to be fully opaque
+    // Update color in case theme differs from what was prepped
+    wash.style.background=`radial-gradient(ellipse at 50% 40%,rgba(${c.r},${c.g},${c.b},0.92) 0%,rgba(0,0,0,0.97) 70%)`;
+    _washPrepped = false;
+    await delay(200);
+  } else {
+    // Normal path — start wash from scratch
+    _washPrepped = false;
+    wash.style.background=`radial-gradient(ellipse at 50% 40%,rgba(${c.r},${c.g},${c.b},0.92) 0%,rgba(0,0,0,0.97) 70%)`;
+    wash.style.transition='opacity 1.1s ease';wash.style.opacity='1';
+    await delay(1200);
+  }
   Object.assign(THEME,theme);
   MS.energy=theme.energy||0.5;
   // For local mic/system modes, maintain fixed progress values (no song arc)
@@ -8989,6 +9012,7 @@ MusicProviders.spotify = {
         this._preloadingTid = null;
         this._preloadPromise = null;
         if (this._rapidTimeout) { clearTimeout(this._rapidTimeout); this._rapidTimeout = null; }
+        // _washPrepped will be consumed by transition() — no need to clear here
         setTrackInfo(tr.name, tr.artists.map(a => a.name).join(', '), true);
         const art = tr.album && tr.album.images && tr.album.images[0] ? tr.album.images[0].url : null;
         if (art) { document.getElementById('albumArt').src = art; document.getElementById('albumArt').style.display = ''; }
@@ -9007,6 +9031,10 @@ MusicProviders.spotify = {
         if (remaining < 6000 && remaining > 0 && !this._rapidMode) {
           this._rapidMode = true;
           console.log('[spotify] rapid polling — song ends in', Math.round(remaining/1000), 's');
+        }
+        // Start wash overlay in last 2s if next theme is preloaded and ready
+        if (remaining < 2000 && remaining > 0 && this._preloadingTid && aiCache[this._preloadingTid]) {
+          prepTransitionWash(aiCache[this._preloadingTid]);
         }
       }
     } finally {
