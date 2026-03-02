@@ -97,7 +97,7 @@ body.djmode-display{cursor:none!important;user-select:none!important}
 #djmodeRoomOverlay .room-code{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,8vw,5rem);letter-spacing:0.25em;color:#00ff41;text-shadow:0 0 40px #00ff41,0 0 80px rgba(0,255,65,0.4);margin:0.8rem 0 0.5rem}
 #djmodeRoomOverlay .room-label{font-size:0.7rem;letter-spacing:0.5em;color:rgba(6,255,216,0.6);text-transform:uppercase}
 #djmodeRoomOverlay .room-qr-wrap{margin:1rem 0;display:flex;align-items:center;justify-content:center}
-#djmodeRoomOverlay .room-qr-wrap canvas{border:3px solid rgba(0,255,65,0.3);border-radius:4px;box-shadow:0 0 30px rgba(0,255,65,0.15);display:block;width:180px!important;height:180px!important;max-width:180px!important;max-height:180px!important}
+#djmodeRoomOverlay .room-qr-wrap img{border:3px solid rgba(0,255,65,0.3);border-radius:4px;box-shadow:0 0 30px rgba(0,255,65,0.15);display:block;width:180px;height:180px}
 #djmodeFsBtnFixed{position:fixed;bottom:2.5rem;right:2.5rem;z-index:502;background:none;border:1px solid rgba(0,255,65,0.25);color:rgba(0,255,65,0.5);font-family:'Share Tech Mono',monospace;font-size:0.6rem;letter-spacing:0.15em;padding:0.4rem 0.7rem;cursor:pointer;transition:all 0.2s;pointer-events:all;display:none}
 #djmodeFsBtnFixed:hover{border-color:#00ff41;color:#00ff41;box-shadow:0 0 10px rgba(0,255,65,0.3)}
 #djmodeRoomOverlay .room-url{font-size:0.55rem;letter-spacing:0.12em;color:rgba(255,255,255,0.35);margin-top:0.8rem;max-width:90vw;text-align:center;word-break:break-all}
@@ -147,6 +147,20 @@ body.djmode-display{cursor:none!important;user-select:none!important}
 .djc-log-entry .log-time{color:rgba(0,255,65,0.2);margin-right:6px}
 .djc-disconnect{display:block;width:100%;margin-top:8px;padding:10px;background:none;border:1px solid rgba(255,0,110,0.2);color:rgba(255,0,110,0.5);font-family:'Share Tech Mono',monospace;font-size:0.6rem;letter-spacing:0.2em;cursor:pointer;text-align:center;border-radius:2px}
 .djc-disconnect:active{background:rgba(255,0,110,0.15);border-color:#ff006e;color:#ff006e}
+.djc-btn.toggled{background:rgba(0,255,65,0.2)!important;border-color:#00ff41!important;color:#00ff41!important;box-shadow:0 0 10px rgba(0,255,65,0.3)!important}
+.djc-btn.highlight.toggled{background:rgba(255,190,11,0.2)!important;border-color:#ffbe0b!important;color:#ffbe0b!important;box-shadow:0 0 10px rgba(255,190,11,0.3)!important}
+.djc-slider-row{display:flex;align-items:center;gap:8px;margin-top:6px}
+.djc-slider-row label{font-size:0.55rem;letter-spacing:0.1em;color:#7acc7a;flex-shrink:0;width:70px}
+.djc-slider-row input[type=range]{flex:1;accent-color:#00ff41;height:3px}
+.djc-slider-row .djc-val{flex-shrink:0;width:30px;text-align:right;font-size:0.55rem;color:#00ff41;font-variant-numeric:tabular-nums}
+.djc-toggle-row{display:flex;gap:8px;margin-top:8px}
+.djc-toggle-btn{flex:1;background:rgba(0,255,65,0.04);border:1px solid rgba(0,255,65,0.12);color:#7acc7a;font-family:'Share Tech Mono',monospace;font-size:0.58rem;letter-spacing:0.06em;padding:8px 4px;cursor:pointer;text-align:center;transition:all 0.12s;border-radius:2px;-webkit-tap-highlight-color:transparent}
+.djc-toggle-btn.active{background:rgba(6,255,216,0.12);border-color:#06ffd8;color:#06ffd8;box-shadow:0 0 6px rgba(6,255,216,0.2)}
+.djc-variant-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px}
+.djc-cp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;max-height:200px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(0,255,65,0.3) transparent}
+.djc-cp-btn{background:rgba(0,255,65,0.04);border:1px solid rgba(0,255,65,0.1);color:#7acc7a;font-family:'Share Tech Mono',monospace;font-size:0.52rem;letter-spacing:0.04em;padding:7px 3px;cursor:pointer;text-align:center;transition:all 0.12s;border-radius:2px;-webkit-tap-highlight-color:transparent;text-transform:capitalize}
+.djc-cp-btn:active{background:rgba(0,255,65,0.2);border-color:#00ff41;color:#00ff41}
+.djc-cp-btn.active-cp{background:rgba(255,190,11,0.1);border-color:rgba(255,190,11,0.4);color:#ffbe0b}
 </style>
 </head>
 <body>
@@ -260,7 +274,7 @@ body.djmode-display{cursor:none!important;user-select:none!important}
   <div class="room-label">DJ MODE — ROOM CODE</div>
   <div class="room-code" id="djmodeRoomCode">—</div>
   <div class="room-label">SCAN TO CONNECT CONTROLLER</div>
-  <div class="room-qr-wrap"><canvas id="djmodeQR"></canvas></div>
+  <div class="room-qr-wrap"><img id="djmodeQR" alt="QR Code" style="width:180px;height:180px;display:block;image-rendering:pixelated"/></div>
   <div class="room-url" id="djmodeRoomUrl">—</div>
   <div class="room-waiting" id="djmodeWaiting">WAITING FOR CONTROLLER...</div>
 </div>
@@ -287,17 +301,38 @@ body.djmode-display{cursor:none!important;user-select:none!important}
       <button class="djc-btn highlight" id="djcSurprise">⚡ SURPRISE</button>
       <button class="djc-btn danger" id="djcBlackout">■ BLACK</button>
     </div>
+    <div class="djc-variant-row" id="djcVariantRow">
+      <button class="djc-btn" id="djcVar0" data-variant="0">V1</button>
+      <button class="djc-btn" id="djcVar1" data-variant="1">V2</button>
+      <button class="djc-btn" id="djcVar2" data-variant="2">V3</button>
+    </div>
   </div>
   <div class="djc-section">
-    <h3>▸ DJ Name Flash</h3>
+    <h3>▸ DJ Name</h3>
     <div class="djc-dj-row">
       <input type="text" class="djc-dj-input" id="djcDJName" placeholder="DJ NAME..." autocomplete="off" autocorrect="off" spellcheck="false"/>
       <button class="djc-btn highlight" style="flex-shrink:0;padding:10px 16px" id="djcFlashName">FLASH</button>
     </div>
   </div>
   <div class="djc-section">
+    <h3>▸ Controls</h3>
+    <div class="djc-slider-row">
+      <label>BEAT</label>
+      <input type="range" id="djcBeatSens" min="0" max="200" value="100"/>
+      <span class="djc-val" id="djcBeatVal">100%</span>
+    </div>
+    <div class="djc-toggle-row">
+      <button class="djc-toggle-btn active" id="djcTransFade" data-style="fade">FADE</button>
+      <button class="djc-toggle-btn" id="djcTransCut" data-style="cut">HARD CUT</button>
+    </div>
+  </div>
+  <div class="djc-section">
     <h3>▸ Scenes</h3>
     <div class="djc-scene-grid" id="djcSceneGrid"></div>
+  </div>
+  <div class="djc-section">
+    <h3>▸ Centerpiece</h3>
+    <div class="djc-cp-grid" id="djcCPGrid"></div>
   </div>
   <div class="djc-section">
     <h3>▸ Session Log</h3>
@@ -11451,7 +11486,8 @@ function render(t){
   requestAnimationFrame(render);
   if(!token)return;
   const w=W(),h=H();
-  SM.energy+=(MS.energy-SM.energy)*0.05;
+  const _djBeatMult = (typeof DJMode !== 'undefined' && DJMode.role === 'display') ? DJMode._beatSensitivity : 1.0;
+  SM.energy+=(Math.min(1, MS.energy * _djBeatMult)-SM.energy)*0.05;
   SM.beatPulse*=0.87;
   updateDJSigMorph(); // Update DJ signature morph animation state
   if(t-MS.lastBeat>MS.beatInterval){MS.lastBeat=t;triggerBeat();}
@@ -11964,6 +12000,10 @@ const DJMode = {
   _sceneTimerInterval: null,
   _blackout: false,
   _djNameTimeout: null,
+  _djNameActive: false,     // DJ name toggle state
+  _surpriseActive: false,   // Surprise toggle state (continuous)
+  _transitionStyle: 'fade', // 'fade' or 'cut'
+  _beatSensitivity: 1.0,    // 0-2 multiplier
   _sessionLog: [],
 
   // ── Firebase config ──
@@ -11988,18 +12028,20 @@ const DJMode = {
     return code;
   },
 
-  // ── QR Code — uses QRious library ──
-  _drawQR(canvas, text) {
+  // ── QR Code — uses QRious library, renders to img for reliable sizing ──
+  _drawQR(imgEl, text) {
     try {
+      const offscreen = document.createElement('canvas');
       new QRious({
-        element: canvas,
+        element: offscreen,
         value: text,
-        size: 180,
+        size: 360,
         level: 'M',
         background: '#ffffff',
         foreground: '#000000',
-        padding: 8
+        padding: 12
       });
+      imgEl.src = offscreen.toDataURL('image/png');
     } catch (e) {
       console.warn('[djmode] QR generation failed:', e);
     }
@@ -12257,12 +12299,79 @@ const DJMode = {
         this.stateRef.update({ blackout: this._blackout });
         break;
 
-      case 'djNameFlash':
+      case 'djNameOn':
         if (cmd.payload) {
-          this._flashDJName(cmd.payload);
+          this._djNameActive = true;
+          this._showDJNamePersistent(cmd.payload);
+        }
+        break;
+
+      case 'djNameOff':
+        this._djNameActive = false;
+        this._hideDJName();
+        break;
+
+      case 'centerpiece':
+        if (cmd.payload && ALL_CPS.includes(cmd.payload)) {
+          THEME.centerpiece = cmd.payload;
+          THEME.centerpieceScale = THEME.centerpieceScale || 0.5;
+          this.stateRef.update({ centerpiece: cmd.payload });
+        }
+        break;
+
+      case 'beatSensitivity':
+        if (cmd.payload != null) {
+          this._beatSensitivity = parseFloat(cmd.payload) || 1.0;
+        }
+        break;
+
+      case 'transitionStyle':
+        if (cmd.payload === 'fade' || cmd.payload === 'cut') {
+          this._transitionStyle = cmd.payload;
         }
         break;
     }
+  },
+
+  // ── Persistent DJ name display (stays until toggled off) ──
+  _showDJNamePersistent(name) {
+    const el = document.getElementById('djNameFlash');
+    const txt = document.getElementById('djNameFlashText');
+    if (!el || !txt) return;
+    if (this._djNameTimeout) { clearTimeout(this._djNameTimeout); this._djNameTimeout = null; }
+
+    // For all scenes that support DJ Sig: use the morph system with infinite hold
+    if (!DJ_SIG_EXCLUDED_SCENES.has(THEME.scene)) {
+      el.classList.remove('show'); // hide overlay, sig system handles rendering
+      // Create a DJ entry for custom names
+      const match = matchDJArtist(name);
+      djSig.active = true;
+      djSig.artist = match || { display: name.toUpperCase(), style: 'bold' };
+      djSig.morph = 0;
+      djSig.phase = 'morphIn';
+      djSig.triggered = true;
+      djSig.holdDuration = Infinity; // hold forever until toggled off
+      djSig.particles = [];
+      return;
+    }
+
+    // Fallback for excluded scenes: persistent overlay
+    txt.textContent = name.toUpperCase();
+    txt.style.color = pc(0);
+    el.classList.add('show');
+    // No timeout — stays until toggled off
+  },
+
+  // ── Hide DJ name ──
+  _hideDJName() {
+    // Clear DJ sig morph
+    if (djSig.phase !== 'idle') {
+      djSig.phase = 'morphOut';
+    }
+    // Clear overlay
+    const el = document.getElementById('djNameFlash');
+    if (el) el.classList.remove('show');
+    if (this._djNameTimeout) { clearTimeout(this._djNameTimeout); this._djNameTimeout = null; }
   },
 
   // ── Clean fade transition for DJ mode (no splash text) ──
@@ -12283,14 +12392,14 @@ const DJMode = {
     const palette = THEME.palette.slice();
     palette.push(palette.shift());
 
-    // Fade to black
+    const useCut = this._transitionStyle === 'cut';
     const wash = document.getElementById('wash');
-    wash.style.background = '#000';
-    wash.style.transition = 'opacity 0.6s ease';
-    wash.style.opacity = '1';
 
-    setTimeout(() => {
-      // Swap scene while hidden
+    // Save DJ name state to restore after scene change
+    const djNameWasActive = this._djNameActive;
+    const djNameText = djSig.artist ? djSig.artist.display : '';
+
+    const doSwap = () => {
       THEME.scene = scene;
       THEME.centerpiece = cp;
       THEME.palette = palette;
@@ -12309,54 +12418,43 @@ const DJMode = {
       surpriseFired = false;
       _songStartTime = Date.now();
 
-      // Fade back in
+      // Restore DJ name if it was active
+      if (djNameWasActive && djNameText) {
+        setTimeout(() => this._showDJNamePersistent(djNameText), 100);
+      }
+    };
+
+    if (useCut) {
+      // Hard cut — instant swap with brief flash
+      wash.style.background = '#000';
+      wash.style.transition = 'none';
+      wash.style.opacity = '1';
+      doSwap();
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          wash.style.transition = 'opacity 0.3s ease';
+          wash.style.opacity = '0';
+          setTimeout(() => { wash.style.background = ''; wash.style.transition = ''; inTrans = false; }, 350);
+        });
+      });
+    } else {
+      // Smooth fade — 0.6s out, swap, 0.8s in
+      wash.style.background = '#000';
+      wash.style.transition = 'opacity 0.6s ease';
+      wash.style.opacity = '1';
+
       setTimeout(() => {
-        wash.style.transition = 'opacity 0.8s ease';
-        wash.style.opacity = '0';
+        doSwap();
         setTimeout(() => {
-          wash.style.background = '';
-          wash.style.transition = '';
-          inTrans = false;
-        }, 900);
-      }, 150);
-
-      this._sceneStart = Date.now();
-      this._pushState();
-    }, 650);
-  },
-
-  // ── Flash DJ name on display ──
-  _flashDJName(name) {
-    const el = document.getElementById('djNameFlash');
-    const txt = document.getElementById('djNameFlashText');
-    if (!el || !txt) return;
-
-    // Clear any existing flash
-    if (this._djNameTimeout) clearTimeout(this._djNameTimeout);
-    el.classList.remove('show');
-
-    // Try to use the DJ Signature system if the DJ is in the database
-    const match = matchDJArtist(name);
-    if (match && !DJ_SIG_EXCLUDED_SCENES.has(THEME.scene)) {
-      // Use the existing DJ sig system for recognized DJs
-      djSig.active = true;
-      djSig.artist = match;
-      djSig.morph = 0;
-      djSig.phase = 'morphIn';
-      djSig.triggered = true;
-      djSig.holdDuration = 6000 + Math.random() * 2000;
-      djSig.particles = [];
-      return;
+          wash.style.transition = 'opacity 0.8s ease';
+          wash.style.opacity = '0';
+          setTimeout(() => { wash.style.background = ''; wash.style.transition = ''; inTrans = false; }, 900);
+        }, 150);
+      }, 650);
     }
 
-    // Fallback: show big name overlay with current theme color
-    txt.textContent = name.toUpperCase();
-    txt.style.color = pc(0);
-    el.classList.add('show');
-    this._djNameTimeout = setTimeout(() => {
-      el.classList.remove('show');
-      this._djNameTimeout = null;
-    }, 6000);
+    this._sceneStart = Date.now();
+    this._pushState();
   },
 
   // ── Push state to Firebase ──
@@ -12365,7 +12463,8 @@ const DJMode = {
     this.stateRef.update({
       scene: THEME.scene || 'WARP_SPEED',
       sceneStart: this._sceneStart,
-      blackout: this._blackout
+      blackout: this._blackout,
+      centerpiece: THEME.centerpiece || ''
     });
   },
 
@@ -12426,8 +12525,28 @@ const DJMode = {
       btn.className = 'djc-scene-btn';
       btn.textContent = s.replace(/_/g, ' ');
       btn.dataset.scene = s;
-      btn.addEventListener('click', () => this._sendCommand('jumpScene', s));
+      btn.addEventListener('click', () => {
+        this._sendCommand('jumpScene', s);
+        this._log('Scene: ' + s.replace(/_/g, ' '));
+      });
       grid.appendChild(btn);
+    });
+
+    // Build centerpiece grid
+    const cpGrid = document.getElementById('djcCPGrid');
+    cpGrid.innerHTML = '';
+    ALL_CPS.forEach(cp => {
+      const btn = document.createElement('button');
+      btn.className = 'djc-cp-btn';
+      btn.textContent = cp.replace(/_/g, ' ');
+      btn.dataset.cp = cp;
+      btn.addEventListener('click', () => {
+        this._sendCommand('centerpiece', cp);
+        this._log('CP: ' + cp.replace(/_/g, ' '));
+        cpGrid.querySelectorAll('.djc-cp-btn').forEach(b => b.classList.remove('active-cp'));
+        btn.classList.add('active-cp');
+      });
+      cpGrid.appendChild(btn);
     });
 
     // ── Wire up buttons ──
@@ -12435,27 +12554,76 @@ const DJMode = {
       this._sendCommand('nextScene');
       this._log('Next scene');
     });
-    document.getElementById('djcSurprise').addEventListener('click', () => {
+
+    // Surprise toggle — stays active until clicked again
+    const surpriseBtn = document.getElementById('djcSurprise');
+    surpriseBtn.addEventListener('click', () => {
       this._sendCommand('surprise');
       this._log('Surprise fired');
     });
+
+    // Surprise variant buttons
+    document.querySelectorAll('#djcVariantRow .djc-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const v = parseInt(btn.dataset.variant);
+        this._sendCommand('surprise', v);
+        this._log('Surprise V' + (v + 1));
+      });
+    });
+
+    // Blackout toggle
     document.getElementById('djcBlackout').addEventListener('click', () => {
       this._sendCommand('blackout');
       this._log('Blackout toggle');
     });
-    document.getElementById('djcFlashName').addEventListener('click', () => {
-      const name = document.getElementById('djcDJName').value.trim();
-      if (name) {
-        this._sendCommand('djNameFlash', name);
-        this._log('DJ flash: ' + name);
+
+    // DJ Name toggle — FLASH turns on, click again turns off
+    const flashBtn = document.getElementById('djcFlashName');
+    const djInput = document.getElementById('djcDJName');
+    flashBtn.addEventListener('click', () => {
+      if (this._djNameActive) {
+        // Turn off
+        this._djNameActive = false;
+        flashBtn.classList.remove('toggled');
+        flashBtn.textContent = 'FLASH';
+        this._sendCommand('djNameOff');
+        this._log('DJ name off');
+      } else {
+        // Turn on
+        const name = djInput.value.trim();
+        if (name) {
+          this._djNameActive = true;
+          flashBtn.classList.add('toggled');
+          flashBtn.textContent = 'HIDE';
+          this._sendCommand('djNameOn', name);
+          this._log('DJ name: ' + name);
+        }
       }
     });
-    // Allow Enter key in DJ name input
-    document.getElementById('djcDJName').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        document.getElementById('djcFlashName').click();
-      }
+    djInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') flashBtn.click();
     });
+
+    // Beat sensitivity slider
+    const beatSlider = document.getElementById('djcBeatSens');
+    const beatVal = document.getElementById('djcBeatVal');
+    beatSlider.addEventListener('input', () => {
+      const pct = parseInt(beatSlider.value);
+      beatVal.textContent = pct + '%';
+      this._sendCommand('beatSensitivity', pct / 100);
+    });
+
+    // Transition style toggle
+    document.querySelectorAll('.djc-toggle-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.djc-toggle-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this._sendCommand('transitionStyle', btn.dataset.style);
+        this._log('Transition: ' + btn.dataset.style);
+      });
+    });
+
+    // Disconnect
     document.getElementById('djcDisconnect').addEventListener('click', () => {
       this.stopController();
     });
@@ -12484,14 +12652,21 @@ const DJMode = {
         btn.classList.toggle('active-scene', btn.dataset.scene === state.scene);
       });
 
+      // Highlight active centerpiece
+      if (state.centerpiece) {
+        cpGrid.querySelectorAll('.djc-cp-btn').forEach(btn => {
+          btn.classList.toggle('active-cp', btn.dataset.cp === state.centerpiece);
+        });
+      }
+
       // Update blackout button state
       const blackoutBtn = document.getElementById('djcBlackout');
       if (state.blackout) {
         blackoutBtn.textContent = '■ LIVE';
-        blackoutBtn.classList.add('active-scene');
+        blackoutBtn.classList.add('toggled');
       } else {
         blackoutBtn.textContent = '■ BLACK';
-        blackoutBtn.classList.remove('active-scene');
+        blackoutBtn.classList.remove('toggled');
       }
     });
 
