@@ -161,6 +161,22 @@ body.djmode-display{cursor:none!important;user-select:none!important}
 .djc-cp-btn{background:rgba(0,255,65,0.04);border:1px solid rgba(0,255,65,0.1);color:#7acc7a;font-family:'Share Tech Mono',monospace;font-size:0.52rem;letter-spacing:0.04em;padding:7px 3px;cursor:pointer;text-align:center;transition:all 0.12s;border-radius:2px;-webkit-tap-highlight-color:transparent;text-transform:capitalize}
 .djc-cp-btn:active{background:rgba(0,255,65,0.2);border-color:#00ff41;color:#00ff41}
 .djc-cp-btn.active-cp{background:rgba(255,190,11,0.1);border-color:rgba(255,190,11,0.4);color:#ffbe0b}
+.djc-queue-preview{padding:10px;background:rgba(0,255,65,0.03);border:1px solid rgba(0,255,65,0.1);border-radius:3px;margin-bottom:10px;min-height:40px}
+.djc-queue-label{font-size:0.52rem;letter-spacing:0.2em;color:rgba(0,255,65,0.35);text-transform:uppercase;margin-bottom:4px}
+.djc-queue-value{font-size:0.72rem;color:#06ffd8;letter-spacing:0.1em}
+.djc-queue-value.empty{color:rgba(255,255,255,0.15);font-style:italic}
+.djc-palette-row{display:flex;gap:6px;align-items:center;margin-top:8px}
+.djc-palette-row label{font-size:0.52rem;letter-spacing:0.15em;color:#7acc7a;flex-shrink:0}
+.djc-color-pick{width:36px;height:28px;border:1px solid rgba(0,255,65,0.2);border-radius:2px;cursor:pointer;padding:0;background:none;-webkit-appearance:none;appearance:none}
+.djc-color-pick::-webkit-color-swatch-wrapper{padding:1px}
+.djc-color-pick::-webkit-color-swatch{border:none;border-radius:1px}
+.djc-push-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.djc-push-btn{background:rgba(6,255,216,0.08);border:1px solid rgba(6,255,216,0.3);color:#06ffd8;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:0.15em;padding:14px 8px;cursor:pointer;text-align:center;transition:all 0.12s;border-radius:2px;-webkit-tap-highlight-color:transparent}
+.djc-push-btn:active{background:rgba(6,255,216,0.25);border-color:#06ffd8;transform:scale(0.97)}
+.djc-push-btn.cut{background:rgba(255,0,110,0.06);border-color:rgba(255,0,110,0.3);color:#ff80b0}
+.djc-push-btn.cut:active{background:rgba(255,0,110,0.2);border-color:#ff006e;color:#ff006e}
+.djc-btn.surprise-on{background:rgba(255,190,11,0.2)!important;border-color:#ffbe0b!important;color:#ffbe0b!important;box-shadow:0 0 10px rgba(255,190,11,0.3)!important;animation:surprisePulse 1.5s ease-in-out infinite}
+@keyframes surprisePulse{0%,100%{box-shadow:0 0 10px rgba(255,190,11,0.3)}50%{box-shadow:0 0 20px rgba(255,190,11,0.6)}}
 </style>
 </head>
 <body>
@@ -315,24 +331,41 @@ body.djmode-display{cursor:none!important;user-select:none!important}
     </div>
   </div>
   <div class="djc-section">
+    <h3>▸ Next Scene Queue</h3>
+    <div class="djc-queue-preview">
+      <div class="djc-queue-label">QUEUED</div>
+      <div class="djc-queue-value empty" id="djcQueuePreview">Select scene, centerpiece, and palette below</div>
+    </div>
+    <div class="djc-push-row">
+      <button class="djc-push-btn" id="djcPushFade">FADE IN</button>
+      <button class="djc-push-btn cut" id="djcPushCut">HARD CUT</button>
+    </div>
+  </div>
+  <div class="djc-section">
+    <h3>▸ Scene</h3>
+    <div class="djc-scene-grid" id="djcSceneGrid"></div>
+  </div>
+  <div class="djc-section">
+    <h3>▸ Centerpiece</h3>
+    <div class="djc-cp-grid" id="djcCPGrid"></div>
+  </div>
+  <div class="djc-section">
+    <h3>▸ Palette</h3>
+    <div class="djc-palette-row">
+      <label>COLORS</label>
+      <input type="color" class="djc-color-pick" id="djcColor0" value="#ff006e"/>
+      <input type="color" class="djc-color-pick" id="djcColor1" value="#8338ec"/>
+      <input type="color" class="djc-color-pick" id="djcColor2" value="#06ffd8"/>
+      <input type="color" class="djc-color-pick" id="djcColor3" value="#ffbe0b"/>
+    </div>
+  </div>
+  <div class="djc-section">
     <h3>▸ Controls</h3>
     <div class="djc-slider-row">
       <label>BEAT</label>
       <input type="range" id="djcBeatSens" min="0" max="200" value="100"/>
       <span class="djc-val" id="djcBeatVal">100%</span>
     </div>
-    <div class="djc-toggle-row">
-      <button class="djc-toggle-btn active" id="djcTransFade" data-style="fade">FADE</button>
-      <button class="djc-toggle-btn" id="djcTransCut" data-style="cut">HARD CUT</button>
-    </div>
-  </div>
-  <div class="djc-section">
-    <h3>▸ Scenes</h3>
-    <div class="djc-scene-grid" id="djcSceneGrid"></div>
-  </div>
-  <div class="djc-section">
-    <h3>▸ Centerpiece</h3>
-    <div class="djc-cp-grid" id="djcCPGrid"></div>
   </div>
   <div class="djc-section">
     <h3>▸ Session Log</h3>
@@ -12002,6 +12035,8 @@ const DJMode = {
   _djNameTimeout: null,
   _djNameActive: false,     // DJ name toggle state
   _surpriseActive: false,   // Surprise toggle state (continuous)
+  _surpriseLoop: null,      // Surprise loop interval
+  _surpriseVariant: null,   // Which variant is looping (null = random)
   _transitionStyle: 'fade', // 'fade' or 'cut'
   _beatSensitivity: 1.0,    // 0-2 multiplier
   _sessionLog: [],
@@ -12277,12 +12312,32 @@ const DJMode = {
         }
         break;
 
+      case 'pushScene':
+        // Queue push — payload contains {scene, centerpiece, palette, style}
+        if (!inTrans && cmd.payload) {
+          const p = cmd.payload;
+          this._transitionStyle = p.style || 'fade';
+          this._pushSceneFromQueue(p);
+        }
+        break;
+
       case 'surprise':
         if (!inTrans) {
           const variant = (cmd.payload != null) ? cmd.payload : undefined;
           fireSurprise(variant);
           surpriseFired = true;
         }
+        break;
+
+      case 'surpriseOn':
+        this._surpriseActive = true;
+        this._surpriseVariant = (cmd.payload != null) ? cmd.payload : null;
+        this._startSurpriseLoop();
+        break;
+
+      case 'surpriseOff':
+        this._surpriseActive = false;
+        this._stopSurpriseLoop();
         break;
 
       case 'blackout':
@@ -12324,13 +12379,101 @@ const DJMode = {
           this._beatSensitivity = parseFloat(cmd.payload) || 1.0;
         }
         break;
-
-      case 'transitionStyle':
-        if (cmd.payload === 'fade' || cmd.payload === 'cut') {
-          this._transitionStyle = cmd.payload;
-        }
-        break;
     }
+  },
+
+  // ── Surprise loop system ──
+  _startSurpriseLoop() {
+    this._stopSurpriseLoop();
+    // Fire immediately
+    const v = this._surpriseVariant;
+    fireSurprise(v != null ? v : undefined);
+    surpriseFired = true;
+    // Re-fire every 12 seconds
+    this._surpriseLoop = setInterval(() => {
+      if (!this._surpriseActive) { this._stopSurpriseLoop(); return; }
+      surpriseFired = false; // reset so fireSurprise works
+      fireSurprise(v != null ? v : Math.floor(Math.random() * 3));
+      surpriseFired = true;
+    }, 12000);
+  },
+
+  _stopSurpriseLoop() {
+    if (this._surpriseLoop) {
+      clearInterval(this._surpriseLoop);
+      this._surpriseLoop = null;
+    }
+    this._surpriseVariant = null;
+  },
+
+  // ── Push a queued scene with specific settings ──
+  _pushSceneFromQueue(q) {
+    if (inTrans) return;
+    inTrans = true;
+
+    const scene = q.scene || THEME.scene;
+    const cp = q.centerpiece || enforceCP(rndEl(ALL_CPS.filter(x => !getForbidCPs().includes(x))));
+    const palette = (q.palette && q.palette.length === 4) ? q.palette : THEME.palette.slice();
+
+    const djNameWasActive = this._djNameActive;
+    const djNameText = djSig.artist ? (djSig.artist.display || '') : '';
+
+    const doSwap = () => {
+      THEME.scene = scene;
+      THEME.centerpiece = cp;
+      THEME.palette = palette;
+      THEME.bgColor = '#000010';
+      THEME.centerpieceScale = 0.3 + Math.random() * 0.7;
+      THEME.centerpieceX = 0.3 + Math.random() * 0.4;
+      THEME.centerpieceY = 0.3 + Math.random() * 0.4;
+      THEME.centerpieceBehavior = rndEl(['rotate','pulse_beat','breathe','orbit_slow','bounce','drift']);
+      THEME.sceneSpeed = 0.7 + Math.random() * 1.3;
+      THEME.sceneIntensity = 0.5 + Math.random() * 0.5;
+
+      recordScene(scene);
+      recordCP(cp);
+      clearSurpriseState();
+      initScene();
+      setupDJSignature('');
+      surpriseFired = false;
+      _songStartTime = Date.now();
+
+      if (djNameWasActive && djNameText) {
+        setTimeout(() => this._showDJNamePersistent(djNameText), 100);
+      }
+    };
+
+    const useCut = (q.style === 'cut');
+    const wash = document.getElementById('wash');
+
+    if (useCut) {
+      wash.style.background = '#000';
+      wash.style.transition = 'none';
+      wash.style.opacity = '1';
+      doSwap();
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          wash.style.transition = 'opacity 0.3s ease';
+          wash.style.opacity = '0';
+          setTimeout(() => { wash.style.background = ''; wash.style.transition = ''; inTrans = false; }, 350);
+        });
+      });
+    } else {
+      wash.style.background = '#000';
+      wash.style.transition = 'opacity 0.6s ease';
+      wash.style.opacity = '1';
+      setTimeout(() => {
+        doSwap();
+        setTimeout(() => {
+          wash.style.transition = 'opacity 0.8s ease';
+          wash.style.opacity = '0';
+          setTimeout(() => { wash.style.background = ''; wash.style.transition = ''; inTrans = false; }, 900);
+        }, 150);
+      }, 650);
+    }
+
+    this._sceneStart = Date.now();
+    this._pushState();
   },
 
   // ── Persistent DJ name display (stays until toggled off) ──
@@ -12483,6 +12626,9 @@ const DJMode = {
       document.removeEventListener('fullscreenchange', this._fsChangeHandler);
       this._fsChangeHandler = null;
     }
+    this._stopSurpriseLoop();
+    this._surpriseActive = false;
+    this._djNameActive = false;
     if (this._controllerListener && this.stateRef) {
       this.stateRef.child('controllerConnected').off('value', this._controllerListener);
     }
@@ -12549,25 +12695,69 @@ const DJMode = {
       cpGrid.appendChild(btn);
     });
 
+    // ── Queue state ──
+    const queue = { scene: null, centerpiece: null, palette: null };
+    const queuePreview = document.getElementById('djcQueuePreview');
+
+    function updateQueuePreview() {
+      const parts = [];
+      if (queue.scene) parts.push(queue.scene.replace(/_/g, ' '));
+      if (queue.centerpiece) parts.push(queue.centerpiece.replace(/_/g, ' '));
+      if (queue.palette) parts.push('custom palette');
+      if (parts.length > 0) {
+        queuePreview.textContent = parts.join(' + ');
+        queuePreview.classList.remove('empty');
+      } else {
+        queuePreview.textContent = 'Select scene, centerpiece, and palette below';
+        queuePreview.classList.add('empty');
+      }
+    }
+
     // ── Wire up buttons ──
     document.getElementById('djcNextScene').addEventListener('click', () => {
       this._sendCommand('nextScene');
-      this._log('Next scene');
+      this._log('Next scene (random)');
     });
 
-    // Surprise toggle — stays active until clicked again
+    // Surprise toggle — click to loop on, click again to stop
     const surpriseBtn = document.getElementById('djcSurprise');
+    let surpriseOn = false;
     surpriseBtn.addEventListener('click', () => {
-      this._sendCommand('surprise');
-      this._log('Surprise fired');
+      surpriseOn = !surpriseOn;
+      if (surpriseOn) {
+        surpriseBtn.classList.add('surprise-on');
+        surpriseBtn.textContent = '⚡ STOP';
+        this._sendCommand('surpriseOn');
+        this._log('Surprise loop ON');
+      } else {
+        surpriseBtn.classList.remove('surprise-on');
+        surpriseBtn.textContent = '⚡ SURPRISE';
+        this._sendCommand('surpriseOff');
+        this._log('Surprise loop OFF');
+      }
     });
 
-    // Surprise variant buttons
+    // Surprise variant buttons — toggle specific variant loop
     document.querySelectorAll('#djcVariantRow .djc-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const v = parseInt(btn.dataset.variant);
-        this._sendCommand('surprise', v);
-        this._log('Surprise V' + (v + 1));
+        const wasActive = btn.classList.contains('surprise-on');
+        // Clear all variant toggles
+        document.querySelectorAll('#djcVariantRow .djc-btn').forEach(b => b.classList.remove('surprise-on'));
+        if (wasActive) {
+          this._sendCommand('surpriseOff');
+          surpriseOn = false;
+          surpriseBtn.classList.remove('surprise-on');
+          surpriseBtn.textContent = '⚡ SURPRISE';
+          this._log('Surprise V' + (v + 1) + ' OFF');
+        } else {
+          btn.classList.add('surprise-on');
+          surpriseOn = true;
+          surpriseBtn.classList.add('surprise-on');
+          surpriseBtn.textContent = '⚡ STOP';
+          this._sendCommand('surpriseOn', v);
+          this._log('Surprise V' + (v + 1) + ' loop ON');
+        }
       });
     });
 
@@ -12577,19 +12767,17 @@ const DJMode = {
       this._log('Blackout toggle');
     });
 
-    // DJ Name toggle — FLASH turns on, click again turns off
+    // DJ Name toggle
     const flashBtn = document.getElementById('djcFlashName');
     const djInput = document.getElementById('djcDJName');
     flashBtn.addEventListener('click', () => {
       if (this._djNameActive) {
-        // Turn off
         this._djNameActive = false;
         flashBtn.classList.remove('toggled');
         flashBtn.textContent = 'FLASH';
         this._sendCommand('djNameOff');
         this._log('DJ name off');
       } else {
-        // Turn on
         const name = djInput.value.trim();
         if (name) {
           this._djNameActive = true;
@@ -12600,8 +12788,80 @@ const DJMode = {
         }
       }
     });
-    djInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') flashBtn.click();
+    djInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') flashBtn.click(); });
+
+    // ── Scene grid — click to queue (not immediate push) ──
+    grid.querySelectorAll('.djc-scene-btn').forEach(btn => {
+      // Replace the old direct jumpScene behavior
+      btn.onclick = null;
+    });
+    // Re-bind scene grid for queue selection
+    grid.innerHTML = '';
+    ALL_SCENES.forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'djc-scene-btn';
+      btn.textContent = s.replace(/_/g, ' ');
+      btn.dataset.scene = s;
+      btn.addEventListener('click', () => {
+        queue.scene = s;
+        grid.querySelectorAll('.djc-scene-btn').forEach(b => b.classList.remove('active-scene'));
+        btn.classList.add('active-scene');
+        updateQueuePreview();
+      });
+      grid.appendChild(btn);
+    });
+
+    // ── CP grid — click to queue ──
+    cpGrid.querySelectorAll('.djc-cp-btn').forEach(btn => { btn.onclick = null; });
+    cpGrid.innerHTML = '';
+    ALL_CPS.forEach(cp => {
+      const btn = document.createElement('button');
+      btn.className = 'djc-cp-btn';
+      btn.textContent = cp.replace(/_/g, ' ');
+      btn.dataset.cp = cp;
+      btn.addEventListener('click', () => {
+        queue.centerpiece = cp;
+        cpGrid.querySelectorAll('.djc-cp-btn').forEach(b => b.classList.remove('active-cp'));
+        btn.classList.add('active-cp');
+        updateQueuePreview();
+      });
+      cpGrid.appendChild(btn);
+    });
+
+    // ── Palette color pickers ──
+    const colorPickers = [
+      document.getElementById('djcColor0'),
+      document.getElementById('djcColor1'),
+      document.getElementById('djcColor2'),
+      document.getElementById('djcColor3')
+    ];
+    colorPickers.forEach(picker => {
+      picker.addEventListener('input', () => {
+        queue.palette = colorPickers.map(p => p.value);
+        updateQueuePreview();
+      });
+    });
+
+    // ── Push buttons — send queued scene with fade or cut ──
+    document.getElementById('djcPushFade').addEventListener('click', () => {
+      if (!queue.scene && !queue.centerpiece && !queue.palette) return;
+      this._sendCommand('pushScene', {
+        scene: queue.scene,
+        centerpiece: queue.centerpiece,
+        palette: queue.palette,
+        style: 'fade'
+      });
+      this._log('Push (fade): ' + (queue.scene || 'current').replace(/_/g, ' '));
+    });
+    document.getElementById('djcPushCut').addEventListener('click', () => {
+      if (!queue.scene && !queue.centerpiece && !queue.palette) return;
+      this._sendCommand('pushScene', {
+        scene: queue.scene,
+        centerpiece: queue.centerpiece,
+        palette: queue.palette,
+        style: 'cut'
+      });
+      this._log('Push (cut): ' + (queue.scene || 'current').replace(/_/g, ' '));
     });
 
     // Beat sensitivity slider
@@ -12611,16 +12871,6 @@ const DJMode = {
       const pct = parseInt(beatSlider.value);
       beatVal.textContent = pct + '%';
       this._sendCommand('beatSensitivity', pct / 100);
-    });
-
-    // Transition style toggle
-    document.querySelectorAll('.djc-toggle-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.djc-toggle-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        this._sendCommand('transitionStyle', btn.dataset.style);
-        this._log('Transition: ' + btn.dataset.style);
-      });
     });
 
     // Disconnect
@@ -12647,18 +12897,6 @@ const DJMode = {
         this._updateSceneTimer(state.sceneStart);
       }
 
-      // Highlight active scene in grid
-      grid.querySelectorAll('.djc-scene-btn').forEach(btn => {
-        btn.classList.toggle('active-scene', btn.dataset.scene === state.scene);
-      });
-
-      // Highlight active centerpiece
-      if (state.centerpiece) {
-        cpGrid.querySelectorAll('.djc-cp-btn').forEach(btn => {
-          btn.classList.toggle('active-cp', btn.dataset.cp === state.centerpiece);
-        });
-      }
-
       // Update blackout button state
       const blackoutBtn = document.getElementById('djcBlackout');
       if (state.blackout) {
@@ -12667,6 +12905,16 @@ const DJMode = {
       } else {
         blackoutBtn.textContent = '■ BLACK';
         blackoutBtn.classList.remove('toggled');
+      }
+
+      // Sync palette colors from display state if available
+      if (state.centerpiece) {
+        cpGrid.querySelectorAll('.djc-cp-btn').forEach(btn => {
+          // Only highlight if user hasn't queued a different one
+          if (!queue.centerpiece) {
+            btn.classList.toggle('active-cp', btn.dataset.cp === state.centerpiece);
+          }
+        });
       }
     });
 
