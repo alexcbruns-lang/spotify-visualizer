@@ -16,6 +16,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:'Share Tech Mono',monospace;color:#fff;cursor:none}
@@ -95,7 +96,7 @@ body.djmode-display{cursor:none!important;user-select:none!important}
 #djmodeRoomOverlay{position:fixed;inset:0;z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.92);font-family:'Share Tech Mono',monospace;color:#06ffd8;transition:opacity 1.5s;pointer-events:all}
 #djmodeRoomOverlay .room-code{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,8vw,5rem);letter-spacing:0.25em;color:#00ff41;text-shadow:0 0 40px #00ff41,0 0 80px rgba(0,255,65,0.4);margin:0.8rem 0 0.5rem}
 #djmodeRoomOverlay .room-label{font-size:0.7rem;letter-spacing:0.5em;color:rgba(6,255,216,0.6);text-transform:uppercase}
-#djmodeRoomOverlay .room-qr{margin:1rem 0;border:3px solid rgba(0,255,65,0.3);border-radius:4px;box-shadow:0 0 30px rgba(0,255,65,0.15)}
+#djmodeRoomOverlay .room-qr{margin:1rem 0;border:3px solid rgba(0,255,65,0.3);border-radius:4px;box-shadow:0 0 30px rgba(0,255,65,0.15);width:180px;height:180px}
 #djmodeRoomOverlay .room-url{font-size:0.55rem;letter-spacing:0.12em;color:rgba(255,255,255,0.35);margin-top:0.8rem;max-width:90vw;text-align:center;word-break:break-all}
 #djmodeRoomOverlay .room-waiting{font-size:0.6rem;letter-spacing:0.3em;color:rgba(131,56,236,0.7);margin-top:1.2rem;animation:waitingPulse 2s ease-in-out infinite}
 @keyframes waitingPulse{0%,100%{opacity:0.4}50%{opacity:1}}
@@ -11982,171 +11983,21 @@ const DJMode = {
     return code;
   },
 
-  // ── QR Code Generator (lightweight, no library) ──
-  // Generates a simple QR code on a canvas element.
-  // Uses alphanumeric mode for short URLs. Based on QR version 6 (41x41).
+  // ── QR Code — uses QRious library ──
   _drawQR(canvas, text) {
-    // Use a tiny inline QR encoder — we generate via a data matrix approach
-    // For simplicity and reliability, we use the QR code as a visual element
-    // generated via a well-tested minimal algorithm
-    const ctx = canvas.getContext('2d');
-    const size = canvas.width;
-
-    // Encode using a simple binary matrix approach
-    // We'll create a visual QR-like code that encodes the URL
-    // For production reliability, use the proven error-corrected approach:
-    const modules = this._generateQRMatrix(text);
-    const modCount = modules.length;
-    const cellSize = Math.floor(size / (modCount + 8)); // padding
-    const offset = Math.floor((size - cellSize * modCount) / 2);
-
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, size, size);
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(offset - 4, offset - 4, cellSize * modCount + 8, cellSize * modCount + 8);
-
-    ctx.fillStyle = '#000';
-    for (let r = 0; r < modCount; r++) {
-      for (let c = 0; c < modCount; c++) {
-        if (modules[r][c]) {
-          ctx.fillRect(offset + c * cellSize, offset + r * cellSize, cellSize, cellSize);
-        }
-      }
+    try {
+      new QRious({
+        element: canvas,
+        value: text,
+        size: 180,
+        level: 'M',
+        background: '#ffffff',
+        foreground: '#000000',
+        padding: 8
+      });
+    } catch (e) {
+      console.warn('[djmode] QR generation failed:', e);
     }
-  },
-
-  // Minimal QR matrix generator — Version 2-4 with L error correction
-  // Uses byte mode encoding with mask pattern 0
-  _generateQRMatrix(text) {
-    // For URLs up to ~80 chars, we need QR version 3 (29x29) or 4 (33x33)
-    // This is a simplified but functional implementation
-    const data = [];
-    for (let i = 0; i < text.length; i++) data.push(text.charCodeAt(i));
-
-    // Determine version based on data length
-    let version, size;
-    if (data.length <= 32) { version = 2; size = 25; }
-    else if (data.length <= 53) { version = 3; size = 29; }
-    else if (data.length <= 78) { version = 4; size = 33; }
-    else if (data.length <= 106) { version = 5; size = 37; }
-    else { version = 6; size = 41; }
-
-    // Create module grid
-    const grid = Array.from({length: size}, () => Array(size).fill(null));
-    const reserved = Array.from({length: size}, () => Array(size).fill(false));
-
-    // Place finder patterns (7x7 at three corners)
-    const placeFinderPattern = (r, c) => {
-      for (let dr = -1; dr <= 7; dr++) {
-        for (let dc = -1; dc <= 7; dc++) {
-          const rr = r + dr, cc = c + dc;
-          if (rr < 0 || rr >= size || cc < 0 || cc >= size) continue;
-          let isDark = false;
-          if (dr >= 0 && dr <= 6 && dc >= 0 && dc <= 6) {
-            if (dr === 0 || dr === 6 || dc === 0 || dc === 6) isDark = true;
-            else if (dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4) isDark = true;
-          }
-          grid[rr][cc] = isDark;
-          reserved[rr][cc] = true;
-        }
-      }
-    };
-    placeFinderPattern(0, 0);
-    placeFinderPattern(0, size - 7);
-    placeFinderPattern(size - 7, 0);
-
-    // Place timing patterns
-    for (let i = 8; i < size - 8; i++) {
-      grid[6][i] = (i % 2 === 0); reserved[6][i] = true;
-      grid[i][6] = (i % 2 === 0); reserved[i][6] = true;
-    }
-
-    // Place alignment patterns for version >= 2
-    if (version >= 2) {
-      const alignPos = [6, size - 7];
-      if (version >= 3) alignPos.splice(1, 0, Math.floor(size / 2));
-      for (const ar of alignPos) {
-        for (const ac of alignPos) {
-          if (reserved[ar] && reserved[ar][ac]) continue;
-          for (let dr = -2; dr <= 2; dr++) {
-            for (let dc = -2; dc <= 2; dc++) {
-              const rr = ar + dr, cc = ac + dc;
-              if (rr < 0 || rr >= size || cc < 0 || cc >= size) continue;
-              if (reserved[rr][cc]) continue;
-              const isDark = (Math.abs(dr) === 2 || Math.abs(dc) === 2 || (dr === 0 && dc === 0));
-              grid[rr][cc] = isDark;
-              reserved[rr][cc] = true;
-            }
-          }
-        }
-      }
-    }
-
-    // Reserve format info areas
-    for (let i = 0; i < 8; i++) {
-      if (!reserved[8]) continue;
-      reserved[8][i] = true; reserved[i][8] = true;
-      if (8 < size) reserved[8][size - 1 - i] = true;
-      if (size - 1 - i >= 0) reserved[size - 1 - i][8] = true;
-    }
-    reserved[8][8] = true;
-    // Dark module
-    if (size > 13) { grid[size - 8][8] = true; reserved[size - 8][8] = true; }
-
-    // Encode data in byte mode
-    const bits = [];
-    // Mode indicator: byte mode = 0100
-    bits.push(0,1,0,0);
-    // Character count (8 bits for version 1-9)
-    for (let i = 7; i >= 0; i--) bits.push((data.length >> i) & 1);
-    // Data bytes
-    for (const byte of data) {
-      for (let i = 7; i >= 0; i--) bits.push((byte >> i) & 1);
-    }
-    // Terminator
-    bits.push(0,0,0,0);
-    // Pad to byte boundary
-    while (bits.length % 8 !== 0) bits.push(0);
-    // Pad bytes
-    const padBytes = [0xEC, 0x11];
-    let padIdx = 0;
-    const maxBits = size * size; // rough upper bound
-    while (bits.length < maxBits) {
-      for (let i = 7; i >= 0; i--) bits.push((padBytes[padIdx] >> i) & 1);
-      padIdx = (padIdx + 1) % 2;
-    }
-
-    // Place data bits in zigzag pattern
-    let bitIdx = 0;
-    for (let right = size - 1; right >= 1; right -= 2) {
-      if (right === 6) right = 5; // skip timing column
-      for (let vert = 0; vert < size; vert++) {
-        for (let j = 0; j < 2; j++) {
-          const col = right - j;
-          const row = ((Math.floor((size - 1 - right + (right <= 6 ? 1 : 0)) / 2)) % 2 === 0)
-            ? (size - 1 - vert) : vert;
-          if (row < 0 || row >= size || col < 0 || col >= size) continue;
-          if (reserved[row][col]) continue;
-          if (bitIdx < bits.length) {
-            // Apply mask pattern 0: (row + col) % 2 === 0
-            const masked = bits[bitIdx] ^ (((row + col) % 2 === 0) ? 1 : 0);
-            grid[row][col] = !!masked;
-          } else {
-            grid[row][col] = ((row + col) % 2 === 0);
-          }
-          bitIdx++;
-        }
-      }
-    }
-
-    // Fill any remaining nulls
-    for (let r = 0; r < size; r++) {
-      for (let c = 0; c < size; c++) {
-        if (grid[r][c] === null) grid[r][c] = false;
-      }
-    }
-
-    return grid;
   },
 
   // ── Initialize Firebase ──
@@ -12194,48 +12045,8 @@ const DJMode = {
     }
     this.connectRoom(code);
 
-    // Enter kiosk mode — hide all UI
-    document.body.classList.add('djmode-display');
-    document.getElementById('login').style.display = 'none';
-
-    // Show room code overlay FIRST (before audio prompt)
-    const overlay = document.getElementById('djmodeRoomOverlay');
-    const codeEl = document.getElementById('djmodeRoomCode');
-    const urlEl = document.getElementById('djmodeRoomUrl');
-    const waitingEl = document.getElementById('djmodeWaiting');
-    const qrCanvas = document.getElementById('djmodeQR');
-    codeEl.textContent = code;
-    const controllerUrl = location.origin + location.pathname + '?controller=' + code;
-    urlEl.textContent = controllerUrl;
-    overlay.style.display = 'flex';
-    overlay.style.opacity = '1';
-
-    // Draw QR code
-    try { this._drawQR(qrCanvas, controllerUrl); } catch (e) { console.warn('[djmode] QR generation failed:', e); }
-
-    // Fullscreen button on overlay
-    const fsBtn = document.getElementById('djmodeFsBtn');
-    fsBtn.addEventListener('click', () => {
-      if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      } else if (document.documentElement.webkitRequestFullscreen) {
-        document.documentElement.webkitRequestFullscreen();
-      }
-    });
-
-    // Push initial state to Firebase
-    this.stateRef.set({
-      scene: THEME.scene || 'WARP_SPEED',
-      sceneStart: Date.now(),
-      connected: true,
-      controllerConnected: false,
-      blackout: false
-    });
-
-    // Set up disconnect cleanup
-    this.stateRef.child('connected').onDisconnect().set(false);
-
-    // Start audio via local provider
+    // ── Step 1: Set up audio FIRST (before showing overlay) ──
+    // This ensures the getDisplayMedia picker completes without racing
     token = 'LOCAL_AUDIO';
     const provider = MusicProviders.local;
     provider._mode = audioMode;
@@ -12270,94 +12081,131 @@ const DJMode = {
         provider._source = provider._audioCtx.createMediaStreamSource(stream);
         provider._source.connect(provider._analyser);
       }
-
-      provider._startTime = Date.now();
-      songProg = 0.45;
-      progMult = 0.55 + songProg * 0.7;
-      MS.duration = 0;
-
-      // Start analysis loop
-      provider._interval = setInterval(() => provider.poll(), 100);
-      activeProvider = provider;
-      TransitionDetector.reset();
-      TransitionDetector.startCalibration();
-
-      // Suppress track info in DJ mode — controller manages names
-      setTrackInfo('', '', false);
-      document.getElementById('albumArt').style.display = 'none';
-      document.getElementById('pgWrap').style.display = 'none';
-
-      // Init scene and start render
-      initScene();
-
-      // ── Wait for controller connection, then fade overlay ──
-      waitingEl.textContent = 'WAITING FOR CONTROLLER...';
-      this._controllerListener = this.stateRef.child('controllerConnected').on('value', (snap) => {
-        if (snap.val() === true) {
-          console.log('[djmode] controller connected — fading overlay');
-          waitingEl.textContent = 'CONTROLLER CONNECTED ✓';
-          waitingEl.style.color = '#00ff41';
-          // Auto-request fullscreen on connection
-          if (document.documentElement.requestFullscreen) {
-            document.documentElement.requestFullscreen().catch(() => {});
-          } else if (document.documentElement.webkitRequestFullscreen) {
-            document.documentElement.webkitRequestFullscreen();
-          }
-          // Fade out after brief confirmation
-          setTimeout(() => {
-            overlay.classList.add('fade-out');
-            setTimeout(() => { overlay.style.display = 'none'; }, 1500);
-          }, 1500);
-        }
-      });
-
-      // ── Listen for commands from controller ──
-      this.commandRef.on('value', (snap) => {
-        const cmd = snap.val();
-        if (!cmd || !cmd.type) return;
-        this._handleCommand(cmd);
-      });
-
-      // ── Triple-tap top-left corner to exit DJ mode ──
-      const exitZone = document.getElementById('djmodeExitZone');
-      exitZone.style.display = 'block';
-      let tapTimes = [];
-      exitZone.addEventListener('click', () => {
-        tapTimes.push(Date.now());
-        // Keep only last 3 taps
-        if (tapTimes.length > 3) tapTimes = tapTimes.slice(-3);
-        if (tapTimes.length >= 3) {
-          const span = tapTimes[tapTimes.length - 1] - tapTimes[tapTimes.length - 3];
-          if (span < 1200) {
-            console.log('[djmode] triple-tap exit');
-            this.stopDisplay();
-            tapTimes = [];
-          }
-        }
-      });
-      // Also allow touch for mobile/tablet display devices
-      exitZone.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        exitZone.click();
-      });
-
-      // Update state periodically
-      this._sceneStart = Date.now();
-      this._pushState();
-
-      console.log('[djmode] display started — room:', code);
-      return true;
-
     } catch (e) {
       console.error('[djmode] audio init failed:', e);
       if (e.name === 'NotAllowedError') {
         showErr('Permission denied. Please allow audio access.');
+      } else if (e.name === 'AbortError' || (e.message && e.message.includes('Timeout'))) {
+        showErr('Audio capture timed out. Try again and select a source quickly.');
       } else {
         showErr('Audio access failed: ' + (e.message || e));
       }
-      this.stopDisplay();
+      token = null;
+      provider._cleanup();
+      this.role = null;
       return false;
     }
+
+    // ── Step 2: Audio is good — enter kiosk mode and show overlay ──
+    document.body.classList.add('djmode-display');
+    document.getElementById('login').style.display = 'none';
+
+    const overlay = document.getElementById('djmodeRoomOverlay');
+    const codeEl = document.getElementById('djmodeRoomCode');
+    const urlEl = document.getElementById('djmodeRoomUrl');
+    const waitingEl = document.getElementById('djmodeWaiting');
+    const qrCanvas = document.getElementById('djmodeQR');
+    codeEl.textContent = code;
+    const controllerUrl = location.origin + location.pathname + '?controller=' + code;
+    urlEl.textContent = controllerUrl;
+    overlay.style.display = 'flex';
+    overlay.style.opacity = '1';
+    overlay.classList.remove('fade-out');
+
+    // Draw QR code using QRious library
+    try { this._drawQR(qrCanvas, controllerUrl); } catch (e) { console.warn('[djmode] QR generation failed:', e); }
+
+    // Fullscreen button on overlay
+    const fsBtn = document.getElementById('djmodeFsBtn');
+    const fsBtnHandler = () => {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else if (document.documentElement.webkitRequestFullscreen) {
+        document.documentElement.webkitRequestFullscreen();
+      }
+    };
+    fsBtn.onclick = fsBtnHandler;
+
+    // Push initial state to Firebase
+    this.stateRef.set({
+      scene: THEME.scene || 'WARP_SPEED',
+      sceneStart: Date.now(),
+      connected: true,
+      controllerConnected: false,
+      blackout: false
+    });
+    this.stateRef.child('connected').onDisconnect().set(false);
+
+    // ── Step 3: Start audio analysis and rendering ──
+    provider._startTime = Date.now();
+    songProg = 0.45;
+    progMult = 0.55 + songProg * 0.7;
+    MS.duration = 0;
+
+    provider._interval = setInterval(() => provider.poll(), 100);
+    activeProvider = provider;
+    TransitionDetector.reset();
+    TransitionDetector.startCalibration();
+
+    setTrackInfo('', '', false);
+    document.getElementById('albumArt').style.display = 'none';
+    document.getElementById('pgWrap').style.display = 'none';
+
+    initScene();
+
+    // ── Step 4: Wait for controller connection, then fade overlay ──
+    waitingEl.textContent = 'WAITING FOR CONTROLLER...';
+    waitingEl.style.color = '';
+    this._controllerListener = this.stateRef.child('controllerConnected').on('value', (snap) => {
+      if (snap.val() === true) {
+        console.log('[djmode] controller connected — fading overlay');
+        waitingEl.textContent = 'CONTROLLER CONNECTED ✓';
+        waitingEl.style.color = '#00ff41';
+        // Auto-request fullscreen on connection
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else if (document.documentElement.webkitRequestFullscreen) {
+          document.documentElement.webkitRequestFullscreen();
+        }
+        // Fade out after brief confirmation
+        setTimeout(() => {
+          overlay.classList.add('fade-out');
+          setTimeout(() => { overlay.style.display = 'none'; }, 1500);
+        }, 1500);
+      }
+    });
+
+    // ── Listen for commands from controller ──
+    this.commandRef.on('value', (snap) => {
+      const cmd = snap.val();
+      if (!cmd || !cmd.type) return;
+      this._handleCommand(cmd);
+    });
+
+    // ── Triple-tap top-left corner to exit DJ mode ──
+    const exitZone = document.getElementById('djmodeExitZone');
+    exitZone.style.display = 'block';
+    let tapTimes = [];
+    const tapHandler = () => {
+      tapTimes.push(Date.now());
+      if (tapTimes.length > 3) tapTimes = tapTimes.slice(-3);
+      if (tapTimes.length >= 3) {
+        const span = tapTimes[tapTimes.length - 1] - tapTimes[tapTimes.length - 3];
+        if (span < 1200) {
+          console.log('[djmode] triple-tap exit');
+          this.stopDisplay();
+          tapTimes = [];
+        }
+      }
+    };
+    exitZone.onclick = tapHandler;
+    exitZone.ontouchend = (e) => { e.preventDefault(); tapHandler(); };
+
+    this._sceneStart = Date.now();
+    this._pushState();
+
+    console.log('[djmode] display started — room:', code);
+    return true;
   },
 
   // ── Handle incoming command from controller ──
