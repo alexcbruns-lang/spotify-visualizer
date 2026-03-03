@@ -1,7 +1,7 @@
 // VIZarcade Service Worker — v1
 // Cache-first for static assets, network-first for API/Firebase
 
-const CACHE_NAME = 'vizarcade-v6';
+const CACHE_NAME = 'vizarcade-v7';
 
 const STATIC_ASSETS = [
   '/',
