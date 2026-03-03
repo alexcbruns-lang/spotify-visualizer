@@ -21,9 +21,21 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:'Share Tech Mono',monospace;color:#fff;cursor:none}
 #cur{position:fixed;width:8px;height:8px;border-radius:50%;pointer-events:none;z-index:9999;mix-blend-mode:screen;transition:background 2s}
+#login{cursor:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2732%27 height=%2732%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M16 2L20 12L25 16L25 21L21 21L21 26L19 26L19 21L13 21L13 26L11 26L11 21L7 21L7 16L12 12Z%27 fill=%27%2300ff41%27/%3E%3Crect x=%2714%27 y=%277%27 width=%274%27 height=%274%27 rx=%271%27 fill=%27%23004400%27/%3E%3Crect x=%279%27 y=%2716%27 width=%273%27 height=%273%27 rx=%271%27 fill=%27%23004400%27/%3E%3Crect x=%2720%27 y=%2716%27 width=%273%27 height=%273%27 rx=%271%27 fill=%27%23004400%27/%3E%3C/svg%3E") 16 2,auto}
+#login button,.btn{cursor:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2732%27 height=%2732%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M16 2a14 14 0 1 1 0 28 14 14 0 1 1 0-28z%27 fill=%27%23ffbe0b%27/%3E%3Cpath d=%27M30 16L16 8L16 24Z%27 fill=%27%23000%27/%3E%3Ccircle cx=%2714%27 cy=%279%27 r=%272.5%27 fill=%27%23000%27/%3E%3C/svg%3E") 16 16,pointer!important}
+.lp-cta{cursor:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2732%27 height=%2732%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M16 2a14 14 0 1 1 0 28 14 14 0 1 1 0-28z%27 fill=%27%23ffbe0b%27/%3E%3Cpath d=%27M30 16L16 8L16 24Z%27 fill=%27%23000%27/%3E%3Ccircle cx=%2714%27 cy=%279%27 r=%272.5%27 fill=%27%23000%27/%3E%3C/svg%3E") 16 16,pointer!important}
+#djmodeRoomOverlay button{cursor:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2732%27 height=%2732%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M16 2a14 14 0 1 1 0 28 14 14 0 1 1 0-28z%27 fill=%27%23ffbe0b%27/%3E%3Cpath d=%27M30 16L16 8L16 24Z%27 fill=%27%23000%27/%3E%3Ccircle cx=%2714%27 cy=%279%27 r=%272.5%27 fill=%27%23000%27/%3E%3C/svg%3E") 16 16,pointer!important}
+#loadingOverlay{position:fixed;inset:0;z-index:250;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;color:#00ff41;pointer-events:all;cursor:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2732%27 height=%2732%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M16 2L20 12L25 16L25 21L21 21L21 26L19 26L19 21L13 21L13 26L11 26L11 21L7 21L7 16L12 12Z%27 fill=%27%2300ff41%27/%3E%3Crect x=%2714%27 y=%277%27 width=%274%27 height=%274%27 rx=%271%27 fill=%27%23004400%27/%3E%3Crect x=%279%27 y=%2716%27 width=%273%27 height=%273%27 rx=%271%27 fill=%27%23004400%27/%3E%3Crect x=%2720%27 y=%2716%27 width=%273%27 height=%273%27 rx=%271%27 fill=%27%23004400%27/%3E%3C/svg%3E") 16 2,auto}
+#loadingOverlay .ld-ship{width:48px;height:48px;margin-bottom:1.5rem;animation:ldFloat 1.8s ease-in-out infinite}
+#loadingOverlay .ld-text{font-size:0.85rem;letter-spacing:0.35em;animation:ldPulse 1.2s ease-in-out infinite}
+#loadingOverlay .ld-bar-wrap{width:160px;height:3px;background:rgba(0,255,65,0.12);margin-top:1.2rem;overflow:hidden;clip-path:polygon(0 0,calc(100% - 4px) 0,100% 4px,100% 100%,4px 100%,0 calc(100% - 4px))}
+#loadingOverlay .ld-bar{height:100%;width:0%;background:#00ff41;box-shadow:0 0 8px rgba(0,255,65,0.6);animation:ldScan 2s ease-in-out infinite}
+@keyframes ldFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes ldPulse{0%,100%{opacity:0.5}50%{opacity:1}}
+@keyframes ldScan{0%{width:0%;margin-left:0}50%{width:100%;margin-left:0}100%{width:0%;margin-left:100%}}
 canvas{position:fixed;top:0;left:0;width:100%;height:100%}
 #c0{z-index:1}#c1{z-index:2}#c2{z-index:3}#c3{z-index:4;pointer-events:none}
-#landingPage{position:fixed;inset:0;z-index:210;background:#000;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;cursor:default}
+#landingPage{position:fixed;inset:0;z-index:210;background:#000;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;cursor:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2732%27 height=%2732%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M16 2L20 12L25 16L25 21L21 21L21 26L19 26L19 21L13 21L13 26L11 26L11 21L7 21L7 16L12 12Z%27 fill=%27%2300ff41%27/%3E%3Crect x=%2714%27 y=%277%27 width=%274%27 height=%274%27 rx=%271%27 fill=%27%23004400%27/%3E%3Crect x=%279%27 y=%2716%27 width=%273%27 height=%273%27 rx=%271%27 fill=%27%23004400%27/%3E%3Crect x=%2720%27 y=%2716%27 width=%273%27 height=%273%27 rx=%271%27 fill=%27%23004400%27/%3E%3C/svg%3E") 16 2,auto}
 #landingPage::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,0,0.012) 2px,rgba(0,255,0,0.012) 4px);pointer-events:none;z-index:1}
 .lp-wrap{position:relative;z-index:2;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;padding:0 1.5rem}
 .lp-hero{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;min-height:100dvh;text-align:center;padding:2rem 0}
@@ -119,7 +131,7 @@ body.djmode-display #ui,body.djmode-display #fsBtn,body.djmode-display #backBtn,
 body.djmode-display #nextSceneBtn,body.djmode-display #splash,body.djmode-display #cur,
 body.djmode-display #pgWrap,body.djmode-display #devPanel,body.djmode-display #sceneTag{display:none!important}
 body.djmode-display{cursor:none!important;user-select:none!important}
-#djmodeRoomOverlay{position:fixed;inset:0;z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.92);font-family:'Share Tech Mono',monospace;color:#06ffd8;transition:opacity 1.5s;pointer-events:all;cursor:default!important}
+#djmodeRoomOverlay{position:fixed;inset:0;z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.92);font-family:'Share Tech Mono',monospace;color:#06ffd8;transition:opacity 1.5s;pointer-events:all;cursor:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2732%27 height=%2732%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M16 2L20 12L25 16L25 21L21 21L21 26L19 26L19 21L13 21L13 26L11 26L11 21L7 21L7 16L12 12Z%27 fill=%27%2300ff41%27/%3E%3Crect x=%2714%27 y=%277%27 width=%274%27 height=%274%27 rx=%271%27 fill=%27%23004400%27/%3E%3Crect x=%279%27 y=%2716%27 width=%273%27 height=%273%27 rx=%271%27 fill=%27%23004400%27/%3E%3Crect x=%2720%27 y=%2716%27 width=%273%27 height=%273%27 rx=%271%27 fill=%27%23004400%27/%3E%3C/svg%3E") 16 2,auto!important}
 #djmodeRoomOverlay .room-code{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,8vw,5rem);letter-spacing:0.25em;color:#00ff41;text-shadow:0 0 40px #00ff41,0 0 80px rgba(0,255,65,0.4);margin:0.8rem 0 0.5rem}
 #djmodeRoomOverlay .room-label{font-size:0.7rem;letter-spacing:0.5em;color:rgba(6,255,216,0.6);text-transform:uppercase}
 #djmodeRoomOverlay .room-qr-wrap{margin:1rem 0;display:flex;align-items:center;justify-content:center}
@@ -216,6 +228,20 @@ body.djmode-display{cursor:none!important;user-select:none!important}
 </head>
 <body>
 <div id="cur"></div>
+<div id="loadingOverlay">
+  <svg class="ld-ship" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <g style="filter:drop-shadow(0 0 6px rgba(0,255,65,0.9))">
+      <path d="M24 3L29 15L36 20L36 27L31 27L31 35L28 35L28 27L20 27L20 35L17 35L17 27L12 27L12 20L19 15Z" fill="#00ff41"/>
+      <rect x="21" y="9" width="6" height="5" rx="1" fill="#004400"/>
+      <rect x="15" y="20" width="4" height="4" rx="1" fill="#004400"/>
+      <rect x="29" y="20" width="4" height="4" rx="1" fill="#004400"/>
+      <rect x="13" y="29" width="4" height="6" fill="#00ff41" opacity="0.5"/>
+      <rect x="31" y="29" width="4" height="6" fill="#00ff41" opacity="0.5"/>
+    </g>
+  </svg>
+  <div class="ld-text">LOADING</div>
+  <div class="ld-bar-wrap"><div class="ld-bar"></div></div>
+</div>
 <div class="scanlines"></div>
 <canvas id="c0"></canvas><canvas id="c1"></canvas><canvas id="c2"></canvas><canvas id="c3"></canvas>
 
@@ -481,6 +507,28 @@ document.addEventListener('mousemove', e => {
   cur.style.left = (e.clientX - 4) + 'px';
   cur.style.top = (e.clientY - 4) + 'px';
 });
+
+// ── Loading overlay ──
+const _loadingEl = document.getElementById('loadingOverlay');
+let _loadingTimeout = null;
+function showLoading(msg) {
+  if (_loadingEl) {
+    const txt = _loadingEl.querySelector('.ld-text');
+    if (txt && msg) txt.textContent = msg;
+    _loadingEl.style.display = 'flex';
+    _loadingEl.style.opacity = '1';
+    clearTimeout(_loadingTimeout);
+    _loadingTimeout = setTimeout(hideLoading, 8000);
+  }
+}
+function hideLoading() {
+  if (_loadingEl) {
+    clearTimeout(_loadingTimeout);
+    _loadingEl.style.transition = 'opacity 0.3s';
+    _loadingEl.style.opacity = '0';
+    setTimeout(() => { _loadingEl.style.display = 'none'; _loadingEl.style.transition = ''; }, 300);
+  }
+}
 
 // ── Helpers ──
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -11694,6 +11742,7 @@ async function startProvider(key) {
     activeProvider = provider;
     ls('lastProvider', key);
     // Show main UI
+    hideLoading();
     document.getElementById('login').style.display = 'none';
     document.getElementById('ui').style.display = 'block';
     document.getElementById('fsBtn').style.display = 'block';
@@ -11702,6 +11751,7 @@ async function startProvider(key) {
     initScene();
     return true;
   }
+  hideLoading();
   return false;
 }
 
@@ -12232,15 +12282,17 @@ document.getElementById('nextSceneBtn').addEventListener('click', () => {
 document.getElementById('loginBtn').addEventListener('click', () => {
   const existing = getAT();
   if (existing) {
+    showLoading('CONNECTING');
     startProvider('spotify');
   } else {
+    showLoading('REDIRECTING');
     doLogin();
   }
 });
 const appleBtn = document.getElementById('appleMusicBtn');
-if (appleBtn) appleBtn.addEventListener('click', () => startProvider('apple'));
+if (appleBtn) appleBtn.addEventListener('click', () => { showLoading('CONNECTING'); startProvider('apple'); });
 const localBtn = document.getElementById('localAudioBtn');
-if (localBtn) localBtn.addEventListener('click', () => startProvider('local'));
+if (localBtn) localBtn.addEventListener('click', () => { showLoading('INITIALIZING'); startProvider('local'); });
 
 // ── Landing page ──
 (function initLandingPage() {
@@ -12920,7 +12972,14 @@ const DJMode = {
     }
     ctx.translate(cx, cy);
     ctx.rotate(hf._holdRot);
-    drawCP(ctx, THEME.centerpiece, sz * (1 + SM.beatPulse * 0.15), t);
+    // Suppress beat reactivity on the centerpiece itself (ring still pulses above)
+    const _savedBP = SM.beatPulse;
+    const _savedE = SM.energy;
+    SM.beatPulse = 0;
+    SM.energy = 0.1;
+    drawCP(ctx, THEME.centerpiece, sz, t);
+    SM.beatPulse = _savedBP;
+    SM.energy = _savedE;
     ctx.restore();
   },
 
@@ -14055,6 +14114,7 @@ async function init() {
 
   // If returning from Spotify OAuth callback, go straight to Spotify provider
   if (p.get('code')) {
+    showLoading('CONNECTING');
     await startProvider('spotify');
     return;
   }
@@ -14066,7 +14126,9 @@ async function init() {
   // Check for saved Spotify session
   const savedToken = getAT();
   if (savedToken) {
+    showLoading('LOADING');
     token = savedToken;
+    hideLoading();
     document.getElementById('login').style.display = 'none';
     document.getElementById('ui').style.display = 'block';
     document.getElementById('fsBtn').style.display = 'block';
