@@ -11793,27 +11793,38 @@ function render(t){
   if(MS.duration>0){songProg=Math.min(1,(Date.now()-MS.analysisStart)/MS.duration);progMult=0.55+songProg*0.7;}
   document.getElementById('pgBar').style.width=(songProg*100)+'%';
   const tc=h2r(pc(Math.floor(t/3000)%4));document.getElementById('cur').style.background=`rgb(${tc.r},${tc.g},${tc.b})`;
-  switch(THEME.scene){
-    case 'WARP_SPEED':drawWarpSpeed(t);break;case 'LAVA_WORLD':drawLavaWorld(t);break;
-    case 'CYBER_GRID':drawCyberGrid(t);break;case 'DEEP_SEA':drawDeepSea(t);break;
-    case 'STORM_CHASER':drawStormChaser(t);break;case 'JUNGLE_RAVE':drawJungleRave(t);break;
-    case 'DISCO_DIMENSION':drawDiscoDimension(t);break;case 'ACID_TRIP':drawAcidTrip(t);break;
-    case 'SPACE_STATION':drawSpaceStation(t);break;case 'NEON_CATHEDRAL':drawNeonCathedral(t);break;
-    case 'CLASSIC_ARCADE':drawClassicArcade(t);break;case 'ELECTRIC_FOREST':drawElectricForest(t);break;
-    case 'OMNIA_NIGHTCLUB':drawOmniaNightclub(t);break;
-    case 'JUNKYARD':drawJunkyard(t);break;case 'GOTHAM':drawSuperhero(t);break;
-    case 'DAY_OF_DEAD':drawDayOfDead(t);break;
-    case 'MOUNT_OLYMPUS':drawMountOlympus(t);break;
-    case 'ATLANTIS':drawAtlantis(t);break;case 'CARNIVAL':drawCarnival(t);break;
-    case 'EGYPTIAN_TOMB':drawEgyptianTomb(t);break;default:drawWarpSpeed(t);
+  // __ Hold Fade: skip scene when fully held, blend during transition __
+  const _hfObj = (typeof DJMode!=='undefined'&&DJMode._holdFade) ? DJMode._holdFade : null;
+  const _hfActive = (_hfObj&&_hfObj.active&&!_hfObj.exiting);
+  const _hfProg = _hfActive ? _hfObj.progress : 0;
+  const _hfExiting = (_hfObj&&_hfObj.active&&_hfObj.exiting);
+  if ((_hfActive && _hfProg >= 1) || _hfExiting) {
+    x0.fillStyle='#000000';x0.fillRect(0,0,w,h);
+  } else {
+    switch(THEME.scene){
+      case 'WARP_SPEED':drawWarpSpeed(t);break;case 'LAVA_WORLD':drawLavaWorld(t);break;
+      case 'CYBER_GRID':drawCyberGrid(t);break;case 'DEEP_SEA':drawDeepSea(t);break;
+      case 'STORM_CHASER':drawStormChaser(t);break;case 'JUNGLE_RAVE':drawJungleRave(t);break;
+      case 'DISCO_DIMENSION':drawDiscoDimension(t);break;case 'ACID_TRIP':drawAcidTrip(t);break;
+      case 'SPACE_STATION':drawSpaceStation(t);break;case 'NEON_CATHEDRAL':drawNeonCathedral(t);break;
+      case 'CLASSIC_ARCADE':drawClassicArcade(t);break;case 'ELECTRIC_FOREST':drawElectricForest(t);break;
+      case 'OMNIA_NIGHTCLUB':drawOmniaNightclub(t);break;
+      case 'JUNKYARD':drawJunkyard(t);break;case 'GOTHAM':drawSuperhero(t);break;
+      case 'DAY_OF_DEAD':drawDayOfDead(t);break;
+      case 'MOUNT_OLYMPUS':drawMountOlympus(t);break;
+      case 'ATLANTIS':drawAtlantis(t);break;case 'CARNIVAL':drawCarnival(t);break;
+      case 'EGYPTIAN_TOMB':drawEgyptianTomb(t);break;default:drawWarpSpeed(t);
+    }
+    if(_hfActive){DJMode._drawHoldVisual(x0,w,h,t);}
   }
-  if(typeof DJMode!=='undefined'&&DJMode._holdFade&&DJMode._holdFade.active){DJMode._drawHoldVisual(x0,w,h,t);}
   x1.clearRect(0,0,w,h);
-  if(THEME.centerpiece&&THEME.centerpieceScale>0&&!CP_INTEGRATED_SCENES.has(THEME.scene)){
+  if(_hfActive||_hfExiting){
+    DJMode._drawHoldCenterpiece(x1,w,h,t);
+  } else if(THEME.centerpiece&&THEME.centerpieceScale>0&&!CP_INTEGRATED_SCENES.has(THEME.scene)){
     drawCPWithBehavior(x1,t);
   }
   x2.clearRect(0,0,w,h);
-  if(!(typeof DJMode!=='undefined'&&DJMode._holdFade&&DJMode._holdFade.active&&DJMode._holdFade.progress>0.5)){drawBeatFX();}
+  if(!(_hfActive&&_hfProg>0.5)&&!_hfExiting){drawBeatFX();}
   x3.clearRect(0,0,w,h);
   const vg=x3.createRadialGradient(w/2,h/2,h*0.2,w/2,h/2,h*0.85);
   vg.addColorStop(0,'transparent');vg.addColorStop(1,'rgba(0,0,0,0.55)');
@@ -12822,6 +12833,10 @@ const DJMode = {
     this._holdFade.exiting = false;
     this._holdFade.startTime = Date.now();
     this._holdFade.palette = THEME.palette ? THEME.palette.slice() : ['#00ff41','#06ffd8','#8338ec','#ff006e'];
+    this._holdFade.origX = THEME.centerpieceX || 0.5;
+    this._holdFade.origY = THEME.centerpieceY || 0.5;
+    this._holdFade.origScale = THEME.centerpieceScale || 0.5;
+    this._holdFade._holdRot = null;
     THEME.palette = ['#ffffff','#cccccc','#999999','#666666'];
     this._stopSurpriseLoop();
     clearSurpriseState();
@@ -12867,6 +12882,45 @@ const DJMode = {
     ctx.globalAlpha = hf.progress * 0.97;
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+  },
+
+  _drawHoldCenterpiece(ctx, w, h, t) {
+    if (!THEME.centerpiece) return;
+    const hf = this._holdFade;
+    const prog = hf.progress;
+    const targetX = 0.5;
+    const targetY = 0.5;
+    const targetScale = 0.5;
+    const ease = Math.min(1, prog * 1.5);
+    const origX = hf.origX || 0.5;
+    const origY = hf.origY || 0.5;
+    const origScale = hf.origScale || 0.5;
+    const cx = w * (origX + (targetX - origX) * ease);
+    const cy = h * (origY + (targetY - origY) * ease);
+    const sc = origScale + (targetScale - origScale) * ease;
+    const sz = Math.min(w, h) * sc * 0.38;
+    if (sz < 2) return;
+    if (!hf._holdRot && hf._holdRot !== 0) hf._holdRot = cpRot || 0;
+    hf._holdRot += 0.008;
+    const pulseR = sz * 1.3 + SM.beatPulse * sz * 0.5;
+    const ringAlpha = 0.15 + SM.beatPulse * 0.4;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,' + ringAlpha.toFixed(3) + ')';
+    ctx.lineWidth = 1.5 + SM.beatPulse * 2.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, pulseR, 0, Math.PI * 2);
+    ctx.stroke();
+    if (SM.beatPulse > 0.05) {
+      ctx.strokeStyle = 'rgba(255,255,255,' + (SM.beatPulse * 0.15).toFixed(3) + ')';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(cx, cy, pulseR * 1.3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.translate(cx, cy);
+    ctx.rotate(hf._holdRot);
+    drawCP(ctx, THEME.centerpiece, sz * (1 + SM.beatPulse * 0.15), t);
     ctx.restore();
   },
 
