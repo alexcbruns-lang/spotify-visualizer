@@ -12643,6 +12643,9 @@ const DJMode = {
         if (msg.source === 'controller' && msg.type === 'command') {
           this._handleCommand(msg.cmd);
         }
+        if (msg.source === 'controller' && msg.type === 'preview' && msg.payload) {
+          this._renderPreview(msg.payload);
+        }
         if (msg.source === 'controller' && msg.type === 'hello') {
           // Local controller connected — treat same as Firebase controllerConnected
           console.log('[djmode] local controller connected via BroadcastChannel');
@@ -12873,6 +12876,10 @@ const DJMode = {
 
       case 'holdFade':
         this._startHoldFade();
+        break;
+
+      case 'preview':
+        if (cmd.payload) this._renderPreview(cmd.payload);
         break;
     }
   },
@@ -13254,6 +13261,111 @@ const DJMode = {
     } catch (e) { /* channel may be closed */ }
   },
 
+  // ── Scene preview renderer (display side) ──
+  _pvBusy: false,
+
+  _renderPreview(p) {
+    if (!p || !p.scene || this._pvBusy) return;
+    this._pvBusy = true;
+    try {
+      const pw = 480, ph = 270;
+      const oc = document.createElement('canvas');
+      oc.width = pw; oc.height = ph;
+      const octx = oc.getContext('2d');
+
+      // Save live state
+      const ls = {
+        scene: THEME.scene, cp: THEME.centerpiece,
+        pal: THEME.palette ? THEME.palette.slice() : null,
+        bg: THEME.bgColor, cpS: THEME.centerpieceScale,
+        cpX: THEME.centerpieceX, cpY: THEME.centerpieceY,
+        cpB: THEME.centerpieceBehavior,
+        spd: THEME.sceneSpeed, int: THEME.sceneIntensity,
+        en: SM.energy, bp: SM.beatPulse,
+        sp: songProg, pm: progMult
+      };
+      const lsd = {};
+      for (const k in SD) lsd[k] = SD[k];
+      const ow = c0.width, oh = c0.height;
+
+      // Resize canvases to preview size
+      [c0, c1, c2, c3].forEach(cv => { cv.width = pw; cv.height = ph; });
+
+      // Apply preview state
+      THEME.scene = p.scene;
+      THEME.centerpiece = p.centerpiece || ls.cp || 'diamond';
+      THEME.palette = (p.palette && p.palette.length === 4) ? p.palette.slice() : (ls.pal ? ls.pal.slice() : ['#00ff41','#06ffd8','#8338ec','#ff006e']);
+      THEME.bgColor = '#000010';
+      THEME.centerpieceScale = 0.5;
+      THEME.centerpieceX = 0.5;
+      THEME.centerpieceY = 0.5;
+      THEME.centerpieceBehavior = 'breathe';
+      THEME.sceneSpeed = 1.0;
+      THEME.sceneIntensity = 0.7;
+      SM.energy = 0.5; SM.beatPulse = 0.3;
+      songProg = 0.4; progMult = 0.83;
+      initScene();
+
+      // Render one frame
+      const t = performance.now();
+      switch(p.scene) {
+        case 'WARP_SPEED':drawWarpSpeed(t);break;case 'LAVA_WORLD':drawLavaWorld(t);break;
+        case 'CYBER_GRID':drawCyberGrid(t);break;case 'DEEP_SEA':drawDeepSea(t);break;
+        case 'STORM_CHASER':drawStormChaser(t);break;case 'JUNGLE_RAVE':drawJungleRave(t);break;
+        case 'DISCO_DIMENSION':drawDiscoDimension(t);break;case 'ACID_TRIP':drawAcidTrip(t);break;
+        case 'SPACE_STATION':drawSpaceStation(t);break;case 'NEON_CATHEDRAL':drawNeonCathedral(t);break;
+        case 'CLASSIC_ARCADE':drawClassicArcade(t);break;case 'ELECTRIC_FOREST':drawElectricForest(t);break;
+        case 'OMNIA_NIGHTCLUB':drawOmniaNightclub(t);break;
+        case 'JUNKYARD':drawJunkyard(t);break;case 'GOTHAM':drawSuperhero(t);break;
+        case 'DAY_OF_DEAD':drawDayOfDead(t);break;
+        case 'MOUNT_OLYMPUS':drawMountOlympus(t);break;
+        case 'ATLANTIS':drawAtlantis(t);break;case 'CARNIVAL':drawCarnival(t);break;
+        case 'EGYPTIAN_TOMB':drawEgyptianTomb(t);break;
+      }
+      x1.clearRect(0, 0, pw, ph);
+      drawCP(t, pw, ph);
+
+      // Composite
+      octx.fillStyle = '#000';
+      octx.fillRect(0, 0, pw, ph);
+      octx.drawImage(c0, 0, 0, pw, ph);
+      octx.drawImage(c1, 0, 0, pw, ph);
+      const dataUrl = oc.toDataURL('image/jpeg', 0.75);
+
+      // Restore live state
+      THEME.scene = ls.scene; THEME.centerpiece = ls.cp;
+      THEME.palette = ls.pal; THEME.bgColor = ls.bg;
+      THEME.centerpieceScale = ls.cpS;
+      THEME.centerpieceX = ls.cpX; THEME.centerpieceY = ls.cpY;
+      THEME.centerpieceBehavior = ls.cpB;
+      THEME.sceneSpeed = ls.spd; THEME.sceneIntensity = ls.int;
+      SM.energy = ls.en; SM.beatPulse = ls.bp;
+      songProg = ls.sp; progMult = ls.pm;
+      for (const k in SD) delete SD[k];
+      for (const k in lsd) SD[k] = lsd[k];
+      [c0, c1, c2, c3].forEach(cv => { cv.width = ow; cv.height = oh; });
+      initScene();
+
+      // Send back via BroadcastChannel
+      if (this._localChannel) {
+        try {
+          this._localChannel.postMessage({
+            source: 'display', type: 'previewImage',
+            dataUrl: dataUrl, scene: p.scene, centerpiece: p.centerpiece
+          });
+        } catch(e) {}
+      }
+      // Send back via Firebase
+      if (this.roomRef) {
+        try { this.roomRef.child('preview').set({ dataUrl: dataUrl, scene: p.scene, centerpiece: p.centerpiece, ts: Date.now() }); } catch(e) {}
+      }
+      console.log('[djmode] preview rendered:', p.scene);
+    } catch(e) {
+      console.error('[djmode] preview render failed:', e);
+    }
+    this._pvBusy = false;
+  },
+
   // ── Reconnection banner (display side) ──
   _showReconnectBanner() {
     if (document.getElementById('djmodeReconnectBanner')) return;
@@ -13350,6 +13462,9 @@ const DJMode = {
           if (msg.type === 'state' && msg.state) {
             this._handleStateUpdate(msg.state);
           }
+          if (msg.type === 'previewImage' && msg.dataUrl) {
+            if (this._onPreviewImage) this._onPreviewImage(msg);
+          }
         };
         // Announce ourselves to the display
         this._localChannel.postMessage({ source: 'controller', type: 'hello' });
@@ -13400,6 +13515,61 @@ const DJMode = {
     const queue = { scene: null, centerpiece: null, palette: null };
     const queuePreview = document.getElementById('djcQueuePreview');
 
+    // ── Preview panel ──
+    const pvWrap = document.getElementById('djcPreviewWrap');
+    const pvImg = document.getElementById('djcPreviewImg');
+    const pvPlaceholder = document.getElementById('djcPreviewPlaceholder');
+    const pvLabel = document.getElementById('djcPreviewLabel');
+    let _pvDebounce = null;
+
+    function requestPreview() {
+      if (!queue.scene) return;
+      clearTimeout(_pvDebounce);
+      _pvDebounce = setTimeout(() => {
+        if (pvWrap) pvWrap.classList.add('loading');
+        // Send preview request via BroadcastChannel (same-device)
+        if (DJMode._localChannel) {
+          try {
+            DJMode._localChannel.postMessage({
+              source: 'controller', type: 'preview',
+              payload: { scene: queue.scene, centerpiece: queue.centerpiece, palette: queue.palette }
+            });
+          } catch(e) {}
+        }
+        // Also send via Firebase command for remote controllers
+        if (DJMode.commandRef) {
+          DJMode.commandRef.set({ type: 'preview', payload: { scene: queue.scene, centerpiece: queue.centerpiece, palette: queue.palette }, ts: Date.now() });
+        }
+      }, 400);
+    }
+
+    // Handle preview image received from display
+    DJMode._onPreviewImage = function(data) {
+      if (!data || !data.dataUrl || !pvImg) return;
+      if (pvWrap) pvWrap.classList.remove('loading');
+      pvImg.onload = function() { pvImg.style.opacity = '1'; };
+      pvImg.src = data.dataUrl;
+      if (pvPlaceholder) pvPlaceholder.style.display = 'none';
+      const lbl = [];
+      if (data.scene) lbl.push(data.scene.replace(/_/g, ' '));
+      if (data.centerpiece) lbl.push(data.centerpiece.replace(/_/g, ' '));
+      if (pvLabel) pvLabel.textContent = lbl.join('  · ');
+    };
+
+    function resetPreview() {
+      if (pvImg) pvImg.style.opacity = '0';
+      if (pvPlaceholder) pvPlaceholder.style.display = '';
+      if (pvLabel) pvLabel.textContent = '';
+      if (pvWrap) pvWrap.classList.remove('loading');
+      clearTimeout(_pvDebounce);
+      queue.scene = null; queue.centerpiece = null; queue.palette = null;
+      grid.querySelectorAll('.djc-scene-btn').forEach(b => b.classList.remove('active-scene'));
+      cpGrid.querySelectorAll('.djc-cp-btn').forEach(b => b.classList.remove('active-cp'));
+      palGrid.querySelectorAll('.djc-palette-btn').forEach(b => b.classList.remove('active-pal'));
+      queuePreview.textContent = 'Select scene, centerpiece, and palette below';
+      queuePreview.classList.add('empty');
+    }
+
     function updateQueuePreview() {
       const parts = [];
       if (queue.scene) parts.push(queue.scene.replace(/_/g, ' '));
@@ -13417,6 +13587,7 @@ const DJMode = {
         queuePreview.textContent = 'Select scene, centerpiece, and palette below';
         queuePreview.classList.add('empty');
       }
+      requestPreview();
     }
 
     // ── Wire up buttons ──
@@ -13574,6 +13745,7 @@ const DJMode = {
         style: 'fade'
       });
       this._log('Push (fade): ' + (queue.scene || 'current').replace(/_/g, ' '));
+      resetPreview();
     });
     document.getElementById('djcPushCut').addEventListener('click', () => {
       if (!queue.scene && !queue.centerpiece && !queue.palette) return;
@@ -13584,6 +13756,7 @@ const DJMode = {
         style: 'cut'
       });
       this._log('Push (cut): ' + (queue.scene || 'current').replace(/_/g, ' '));
+      resetPreview();
     });
     document.getElementById('djcPushHold').addEventListener('click', () => {
       this._sendCommand('holdFade');
@@ -13602,6 +13775,12 @@ const DJMode = {
     // Disconnect
     document.getElementById('djcDisconnect').addEventListener('click', () => {
       this.stopController();
+    });
+
+    // ── Listen for preview images from display ──
+    this.roomRef.child('preview').on('value', (snap) => {
+      const pv = snap.val();
+      if (pv && pv.dataUrl && this._onPreviewImage) this._onPreviewImage(pv);
     });
 
     // ── Listen for state updates from display ──
