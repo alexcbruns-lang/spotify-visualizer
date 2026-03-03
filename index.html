@@ -13407,17 +13407,22 @@ const DJMode = {
     const queuePreview = document.getElementById('djcQueuePreview');
 
     // ── Preview panel elements ──
-    const pvWrap = document.getElementById('djcPreviewWrap');
-    const pvCanvas = document.getElementById('djcPreviewCanvas');
-    const pvCtx = pvCanvas.getContext('2d');
-    const pvPlaceholder = document.getElementById('djcPreviewPlaceholder');
-    const pvLabel = document.getElementById('djcPreviewLabel');
+    let pvWrap, pvCanvas, pvCtx, pvPlaceholder, pvLabel;
     let _pvDebounce = null;
     let _pvBusy = false;
+    let _pvReady = false;
+    try {
+      pvWrap = document.getElementById('djcPreviewWrap');
+      pvCanvas = document.getElementById('djcPreviewCanvas');
+      pvCtx = pvCanvas ? pvCanvas.getContext('2d') : null;
+      pvPlaceholder = document.getElementById('djcPreviewPlaceholder');
+      pvLabel = document.getElementById('djcPreviewLabel');
+      _pvReady = !!(pvWrap && pvCanvas && pvCtx);
+    } catch(e) { console.warn('[preview] init failed:', e); }
 
     // Render preview locally on the controller using the existing draw functions
     function renderLocalPreview() {
-      if (!queue.scene || _pvBusy) return;
+      if (!_pvReady || !queue.scene || _pvBusy) return;
       clearTimeout(_pvDebounce);
       _pvDebounce = setTimeout(() => {
         pvWrap.classList.add('loading');
@@ -13535,10 +13540,10 @@ const DJMode = {
     }
 
     function resetPreview() {
-      pvCanvas.style.opacity = '0';
-      pvPlaceholder.style.display = '';
-      pvLabel.textContent = '';
-      pvWrap.classList.remove('loading');
+      if (pvCanvas) pvCanvas.style.opacity = '0';
+      if (pvPlaceholder) pvPlaceholder.style.display = '';
+      if (pvLabel) pvLabel.textContent = '';
+      if (pvWrap) pvWrap.classList.remove('loading');
       clearTimeout(_pvDebounce);
       queue.scene = null;
       queue.centerpiece = null;
