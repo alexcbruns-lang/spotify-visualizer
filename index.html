@@ -11275,9 +11275,13 @@ MusicProviders.local = {
         '<button id="localCancelBtn" style="background:none;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.4);padding:0.6rem 2rem;cursor:pointer;font-family:\'Share Tech Mono\',monospace;font-size:0.7rem;letter-spacing:0.2em;margin-top:10px">CANCEL</button>';
       document.body.appendChild(overlay);
 
-      // ── Line-In / Venue — guided audio device picker ──
+      // ── Line-In / Venue — skip device picker, go straight to signal check with default input ──
       document.getElementById('localVenueBtn').onclick = () => {
-        this._showVenueDevicePicker(overlay, resolve);
+        _showVenueSignalCheck(null, 'Default Audio Input', overlay, () => {
+          this._venueDeviceId = null; // null = use default device
+          overlay.remove();
+          resolve('venue');
+        });
       };
 
       document.getElementById('localMicBtn').onclick = () => {
@@ -13323,7 +13327,11 @@ const DJMode = {
       document.body.appendChild(overlay);
 
       document.getElementById('djVenueBtn').onclick = () => {
-        this._showDJVenueDevicePicker(overlay, resolve);
+        _showVenueSignalCheck(null, 'Default Audio Input', overlay, () => {
+          this._venueDeviceId = null;
+          overlay.remove();
+          resolve('venue');
+        });
       };
       const sysBtn = document.getElementById('djSysBtn');
       if (sysBtn) sysBtn.onclick = () => { overlay.remove(); resolve('system'); };
@@ -13470,9 +13478,10 @@ function _showVenueSignalCheck(deviceId, deviceLabel, parentOverlay, onConfirm) 
       _checkAnalyser.smoothingTimeConstant = 0.8;
       const freqData = new Uint8Array(_checkAnalyser.frequencyBinCount);
 
-      _checkStream = await navigator.mediaDevices.getUserMedia({
-        audio: { deviceId: { exact: deviceId } }
-      });
+      const audioConstraints = deviceId
+        ? { audio: { deviceId: { exact: deviceId } } }
+        : { audio: true };
+      _checkStream = await navigator.mediaDevices.getUserMedia(audioConstraints);
       const source = _checkCtx.createMediaStreamSource(_checkStream);
       source.connect(_checkAnalyser);
 
