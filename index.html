@@ -33,6 +33,12 @@ html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:'Sh
 @keyframes ldFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 @keyframes ldPulse{0%,100%{opacity:0.5}50%{opacity:1}}
 @keyframes ldScan{0%{width:0%;margin-left:0}50%{width:100%;margin-left:0}100%{width:0%;margin-left:100%}}
+.djc-preview-wrap{width:100%;background:#0a0a18;border:1px solid rgba(0,255,65,0.15);border-radius:3px;margin-top:10px;padding:10px 12px}
+.djc-pv-scene{font-family:'Share Tech Mono',monospace;font-size:0.7rem;letter-spacing:0.15em;color:#00ff41;margin-bottom:6px}
+.djc-pv-cp{font-family:'Share Tech Mono',monospace;font-size:0.55rem;letter-spacing:0.1em;color:rgba(0,255,65,0.5);margin-bottom:8px}
+.djc-pv-palette{display:flex;gap:4px;height:20px}
+.djc-pv-palette span{flex:1;border-radius:2px}
+.djc-pv-empty{font-family:'Share Tech Mono',monospace;font-size:0.5rem;letter-spacing:0.2em;color:rgba(0,255,65,0.2);text-transform:uppercase}
 canvas{position:fixed;top:0;left:0;width:100%;height:100%}
 #c0{z-index:1}#c1{z-index:2}#c2{z-index:3}#c3{z-index:4;pointer-events:none}
 #landingPage{position:fixed;inset:0;z-index:210;background:#000;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;cursor:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2732%27 height=%2732%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M16 2L20 12L25 16L25 21L21 21L21 26L19 26L19 21L13 21L13 26L11 26L11 21L7 21L7 16L12 12Z%27 fill=%27%2300ff41%27/%3E%3Crect x=%2714%27 y=%277%27 width=%274%27 height=%274%27 rx=%271%27 fill=%27%23004400%27/%3E%3Crect x=%279%27 y=%2716%27 width=%273%27 height=%273%27 rx=%271%27 fill=%27%23004400%27/%3E%3Crect x=%2720%27 y=%2716%27 width=%273%27 height=%273%27 rx=%271%27 fill=%27%23004400%27/%3E%3C/svg%3E") 16 2,auto}
@@ -449,6 +455,12 @@ body.djmode-display{cursor:none!important;user-select:none!important}
       <button class="djc-push-btn" id="djcPushFade">FADE IN</button>
       <button class="djc-push-btn cut" id="djcPushCut">HARD CUT</button>
       <button class="djc-push-btn hold" id="djcPushHold">HOLD FADE</button>
+    </div>
+    <div class="djc-preview-wrap" id="djcPreviewWrap">
+      <div class="djc-pv-empty" id="djcPvEmpty">PREVIEW</div>
+      <div class="djc-pv-scene" id="djcPvScene" style="display:none"></div>
+      <div class="djc-pv-cp" id="djcPvCP" style="display:none"></div>
+      <div class="djc-pv-palette" id="djcPvPalette" style="display:none"></div>
     </div>
   </div>
   <div class="djc-section">
@@ -12643,9 +12655,6 @@ const DJMode = {
         if (msg.source === 'controller' && msg.type === 'command') {
           this._handleCommand(msg.cmd);
         }
-        if (msg.source === 'controller' && msg.type === 'preview' && msg.payload) {
-          this._renderPreview(msg.payload);
-        }
         if (msg.source === 'controller' && msg.type === 'hello') {
           // Local controller connected — treat same as Firebase controllerConnected
           console.log('[djmode] local controller connected via BroadcastChannel');
@@ -12754,12 +12763,6 @@ const DJMode = {
           setTimeout(() => { overlay.style.display = 'none'; }, 1500);
         }, 1500);
       }
-    });
-
-    // ── Listen for preview requests from controller (separate from commands) ──
-    this.roomRef.child('previewRequest').on('value', (snap) => {
-      const req = snap.val();
-      if (req && req.scene) this._renderPreview(req);
     });
 
     // ── Listen for commands from controller ──
@@ -13263,111 +13266,6 @@ const DJMode = {
     } catch (e) { /* channel may be closed */ }
   },
 
-  // ── Scene preview renderer (display side) ──
-  _pvBusy: false,
-
-  _renderPreview(p) {
-    if (!p || !p.scene || this._pvBusy) return;
-    this._pvBusy = true;
-    try {
-      const pw = 480, ph = 270;
-      const oc = document.createElement('canvas');
-      oc.width = pw; oc.height = ph;
-      const octx = oc.getContext('2d');
-
-      // Save live state
-      const ls = {
-        scene: THEME.scene, cp: THEME.centerpiece,
-        pal: THEME.palette ? THEME.palette.slice() : null,
-        bg: THEME.bgColor, cpS: THEME.centerpieceScale,
-        cpX: THEME.centerpieceX, cpY: THEME.centerpieceY,
-        cpB: THEME.centerpieceBehavior,
-        spd: THEME.sceneSpeed, int: THEME.sceneIntensity,
-        en: SM.energy, bp: SM.beatPulse,
-        sp: songProg, pm: progMult
-      };
-      const lsd = {};
-      for (const k in SD) lsd[k] = SD[k];
-      const ow = c0.width, oh = c0.height;
-
-      // Resize canvases to preview size
-      [c0, c1, c2, c3].forEach(cv => { cv.width = pw; cv.height = ph; });
-
-      // Apply preview state
-      THEME.scene = p.scene;
-      THEME.centerpiece = p.centerpiece || ls.cp || 'diamond';
-      THEME.palette = (p.palette && p.palette.length === 4) ? p.palette.slice() : (ls.pal ? ls.pal.slice() : ['#00ff41','#06ffd8','#8338ec','#ff006e']);
-      THEME.bgColor = '#000010';
-      THEME.centerpieceScale = 0.5;
-      THEME.centerpieceX = 0.5;
-      THEME.centerpieceY = 0.5;
-      THEME.centerpieceBehavior = 'breathe';
-      THEME.sceneSpeed = 1.0;
-      THEME.sceneIntensity = 0.7;
-      SM.energy = 0.5; SM.beatPulse = 0.3;
-      songProg = 0.4; progMult = 0.83;
-      initScene();
-
-      // Render one frame
-      const t = performance.now();
-      switch(p.scene) {
-        case 'WARP_SPEED':drawWarpSpeed(t);break;case 'LAVA_WORLD':drawLavaWorld(t);break;
-        case 'CYBER_GRID':drawCyberGrid(t);break;case 'DEEP_SEA':drawDeepSea(t);break;
-        case 'STORM_CHASER':drawStormChaser(t);break;case 'JUNGLE_RAVE':drawJungleRave(t);break;
-        case 'DISCO_DIMENSION':drawDiscoDimension(t);break;case 'ACID_TRIP':drawAcidTrip(t);break;
-        case 'SPACE_STATION':drawSpaceStation(t);break;case 'NEON_CATHEDRAL':drawNeonCathedral(t);break;
-        case 'CLASSIC_ARCADE':drawClassicArcade(t);break;case 'ELECTRIC_FOREST':drawElectricForest(t);break;
-        case 'OMNIA_NIGHTCLUB':drawOmniaNightclub(t);break;
-        case 'JUNKYARD':drawJunkyard(t);break;case 'GOTHAM':drawSuperhero(t);break;
-        case 'DAY_OF_DEAD':drawDayOfDead(t);break;
-        case 'MOUNT_OLYMPUS':drawMountOlympus(t);break;
-        case 'ATLANTIS':drawAtlantis(t);break;case 'CARNIVAL':drawCarnival(t);break;
-        case 'EGYPTIAN_TOMB':drawEgyptianTomb(t);break;
-      }
-      x1.clearRect(0, 0, pw, ph);
-      drawCP(t, pw, ph);
-
-      // Composite
-      octx.fillStyle = '#000';
-      octx.fillRect(0, 0, pw, ph);
-      octx.drawImage(c0, 0, 0, pw, ph);
-      octx.drawImage(c1, 0, 0, pw, ph);
-      const dataUrl = oc.toDataURL('image/jpeg', 0.75);
-
-      // Restore live state
-      THEME.scene = ls.scene; THEME.centerpiece = ls.cp;
-      THEME.palette = ls.pal; THEME.bgColor = ls.bg;
-      THEME.centerpieceScale = ls.cpS;
-      THEME.centerpieceX = ls.cpX; THEME.centerpieceY = ls.cpY;
-      THEME.centerpieceBehavior = ls.cpB;
-      THEME.sceneSpeed = ls.spd; THEME.sceneIntensity = ls.int;
-      SM.energy = ls.en; SM.beatPulse = ls.bp;
-      songProg = ls.sp; progMult = ls.pm;
-      for (const k in SD) delete SD[k];
-      for (const k in lsd) SD[k] = lsd[k];
-      [c0, c1, c2, c3].forEach(cv => { cv.width = ow; cv.height = oh; });
-      initScene();
-
-      // Send back via BroadcastChannel
-      if (this._localChannel) {
-        try {
-          this._localChannel.postMessage({
-            source: 'display', type: 'previewImage',
-            dataUrl: dataUrl, scene: p.scene, centerpiece: p.centerpiece
-          });
-        } catch(e) {}
-      }
-      // Send back via Firebase
-      if (this.roomRef) {
-        try { this.roomRef.child('preview').set({ dataUrl: dataUrl, scene: p.scene, centerpiece: p.centerpiece, ts: Date.now() }); } catch(e) {}
-      }
-      console.log('[djmode] preview rendered:', p.scene);
-    } catch(e) {
-      console.error('[djmode] preview render failed:', e);
-    }
-    this._pvBusy = false;
-  },
-
   // ── Reconnection banner (display side) ──
   _showReconnectBanner() {
     if (document.getElementById('djmodeReconnectBanner')) return;
@@ -13464,9 +13362,6 @@ const DJMode = {
           if (msg.type === 'state' && msg.state) {
             this._handleStateUpdate(msg.state);
           }
-          if (msg.type === 'previewImage' && msg.dataUrl) {
-            if (this._onPreviewImage) this._onPreviewImage(msg);
-          }
         };
         // Announce ourselves to the display
         this._localChannel.postMessage({ source: 'controller', type: 'hello' });
@@ -13517,60 +13412,50 @@ const DJMode = {
     const queue = { scene: null, centerpiece: null, palette: null };
     const queuePreview = document.getElementById('djcQueuePreview');
 
-    // ── Preview panel ──
-    const pvWrap = document.getElementById('djcPreviewWrap');
-    const pvImg = document.getElementById('djcPreviewImg');
-    const pvPlaceholder = document.getElementById('djcPreviewPlaceholder');
-    const pvLabel = document.getElementById('djcPreviewLabel');
-    let _pvDebounce = null;
+    // ── Preview panel elements ──
+    const pvEmpty = document.getElementById('djcPvEmpty');
+    const pvScene = document.getElementById('djcPvScene');
+    const pvCP = document.getElementById('djcPvCP');
+    const pvPalette = document.getElementById('djcPvPalette');
 
-    function requestPreview() {
-      if (!queue.scene) return;
-      clearTimeout(_pvDebounce);
-      _pvDebounce = setTimeout(() => {
-        if (pvWrap) pvWrap.classList.add('loading');
-        const pvPayload = { scene: queue.scene, centerpiece: queue.centerpiece, palette: queue.palette, ts: Date.now() };
-        // Send preview request via BroadcastChannel (same-device) — separate from commands
-        if (DJMode._localChannel) {
-          try {
-            DJMode._localChannel.postMessage({
-              source: 'controller', type: 'preview',
-              payload: pvPayload
-            });
-          } catch(e) {}
-        }
-        // For remote controllers, use a separate Firebase path (NOT commandRef)
-        if (DJMode.roomRef) {
-          try { DJMode.roomRef.child('previewRequest').set(pvPayload); } catch(e) {}
-        }
-      }, 400);
+    function updatePreviewPanel() {
+      if (!queue.scene && !queue.centerpiece && !queue.palette) {
+        if (pvEmpty) pvEmpty.style.display = '';
+        if (pvScene) pvScene.style.display = 'none';
+        if (pvCP) pvCP.style.display = 'none';
+        if (pvPalette) pvPalette.style.display = 'none';
+        return;
+      }
+      if (pvEmpty) pvEmpty.style.display = 'none';
+      if (pvScene) {
+        pvScene.style.display = queue.scene ? '' : 'none';
+        pvScene.textContent = queue.scene ? queue.scene.replace(/_/g, ' ') : '';
+      }
+      if (pvCP) {
+        pvCP.style.display = queue.centerpiece ? '' : 'none';
+        pvCP.textContent = queue.centerpiece ? 'CP: ' + queue.centerpiece.replace(/_/g, ' ') : '';
+      }
+      if (pvPalette && queue.palette) {
+        pvPalette.style.display = 'flex';
+        pvPalette.innerHTML = '';
+        queue.palette.forEach(c => {
+          const s = document.createElement('span');
+          s.style.background = c;
+          pvPalette.appendChild(s);
+        });
+      } else if (pvPalette) {
+        pvPalette.style.display = 'none';
+      }
     }
 
-    // Handle preview image received from display
-    DJMode._onPreviewImage = function(data) {
-      if (!data || !data.dataUrl || !pvImg) return;
-      if (pvWrap) pvWrap.classList.remove('loading');
-      pvImg.onload = function() { pvImg.style.opacity = '1'; };
-      pvImg.src = data.dataUrl;
-      if (pvPlaceholder) pvPlaceholder.style.display = 'none';
-      const lbl = [];
-      if (data.scene) lbl.push(data.scene.replace(/_/g, ' '));
-      if (data.centerpiece) lbl.push(data.centerpiece.replace(/_/g, ' '));
-      if (pvLabel) pvLabel.textContent = lbl.join('  · ');
-    };
-
     function resetPreview() {
-      if (pvImg) pvImg.style.opacity = '0';
-      if (pvPlaceholder) pvPlaceholder.style.display = '';
-      if (pvLabel) pvLabel.textContent = '';
-      if (pvWrap) pvWrap.classList.remove('loading');
-      clearTimeout(_pvDebounce);
       queue.scene = null; queue.centerpiece = null; queue.palette = null;
       grid.querySelectorAll('.djc-scene-btn').forEach(b => b.classList.remove('active-scene'));
       cpGrid.querySelectorAll('.djc-cp-btn').forEach(b => b.classList.remove('active-cp'));
       palGrid.querySelectorAll('.djc-palette-btn').forEach(b => b.classList.remove('active-pal'));
       queuePreview.textContent = 'Select scene, centerpiece, and palette below';
       queuePreview.classList.add('empty');
+      updatePreviewPanel();
     }
 
     function updateQueuePreview() {
@@ -13590,7 +13475,7 @@ const DJMode = {
         queuePreview.textContent = 'Select scene, centerpiece, and palette below';
         queuePreview.classList.add('empty');
       }
-      requestPreview();
+      updatePreviewPanel();
     }
 
     // ── Wire up buttons ──
@@ -13778,12 +13663,6 @@ const DJMode = {
     // Disconnect
     document.getElementById('djcDisconnect').addEventListener('click', () => {
       this.stopController();
-    });
-
-    // ── Listen for preview images from display ──
-    this.roomRef.child('preview').on('value', (snap) => {
-      const pv = snap.val();
-      if (pv && pv.dataUrl && this._onPreviewImage) this._onPreviewImage(pv);
     });
 
     // ── Listen for state updates from display ──
