@@ -2307,9 +2307,10 @@ const TransitionDetector = {
   dynamicRange: 0,            // ceiling - floor
 
   // Detection state
-  energyWindow: [],
-  surpriseCooldown: 0,
-  transitionCooldown: 0,
+  energyWindow: [],           // [{v, t}] — timestamped samples, kept for last 12s
+  _surpriseCooldownUntil: 0,  // timestamp — surprise blocked until this time
+  _transitionCooldownUntil: 0,// timestamp — transition blocked until this time
+  _lastDiag: 0,               // timestamp — for 10s diagnostic log
   rollingPeak: 0,
   dipDetected: false,
   dipEnergy: 0,
@@ -2317,7 +2318,6 @@ const TransitionDetector = {
   dipTime: 0,
   hardCutState: 0,  // 0=watching, 1=silence detected
   hardCutTime: 0,
-  diagTimer: 0,
 
   // Computed thresholds (set after calibration)
   thresholds: null,
@@ -2347,7 +2347,7 @@ const TransitionDetector = {
     this.surpriseFloor = 1;
     this.surpriseCeiling = 0;
     this.surpriseThresholds = null;
-    this.surpriseCooldown = 60000; // Don't fire surprises for 60s after new song
+    this._surpriseCooldownUntil = Date.now() + 60000; // Don't fire surprises for 60s after new song
     console.log('[detect] surprise calibrating for new song...');
   },
 
@@ -2402,14 +2402,19 @@ const TransitionDetector = {
 
   // Feed energy sample from the poll loop
   // Returns { surprise: bool, crossfade: bool, hardCut: bool }
+  // ── POLL-RATE IMMUNE: all timing uses Date.now(), not sample counts ──
+  // energyWindow stores {v, t} objects; time-window slices replace fixed sample-count slices.
+  // This means 33ms or 100ms poll rates produce identical detection behaviour.
   update(energy, mode) {
+    const now = Date.now();
+
     // ── Transition calibration phase ──
     if (this.calibrating) {
       if (energy < this.energyFloor) this.energyFloor = energy;
       if (energy > this.energyCeiling) this.energyCeiling = energy;
       this.dynamicRange = this.energyCeiling - this.energyFloor;
 
-      if (Date.now() - this.calibrationStart >= this.calibrationDuration) {
+      if (now - this.calibrationStart >= this.calibrationDuration) {
         this.calibrating = false;
         if (this.dynamicRange < 0.02) {
           console.log('[detect] calibration saw too little range — using mode defaults');
@@ -2418,15 +2423,16 @@ const TransitionDetector = {
           this.thresholds = this._computeThresholds(mode);
         }
       }
-      this.energyWindow.push(energy);
-      if (this.energyWindow.length > 80) this.energyWindow.shift();
+      this.energyWindow.push({ v: energy, t: now });
+      // Keep last 12s of samples (at 33ms = ~360 samples; at 100ms = ~120 — either works)
+      while (this.energyWindow.length > 0 && now - this.energyWindow[0].t > 12000) this.energyWindow.shift();
     }
 
     // ── Surprise calibration phase (per song, can overlap with post-transition) ──
     if (this.surpriseCalibrating) {
       if (energy < this.surpriseFloor) this.surpriseFloor = energy;
       if (energy > this.surpriseCeiling) this.surpriseCeiling = energy;
-      if (Date.now() - this.surpriseCalStart >= this.surpriseCalDuration) {
+      if (now - this.surpriseCalStart >= this.surpriseCalDuration) {
         this.surpriseCalibrating = false;
         const sRange = this.surpriseCeiling - this.surpriseFloor;
         if (sRange < 0.02) {
@@ -2450,63 +2456,70 @@ const TransitionDetector = {
     else this.energyCeiling = this.energyCeiling * 0.9999 + energy * 0.0001;
     this.dynamicRange = this.energyCeiling - this.energyFloor;
 
-    // ── Window management ──
-    this.energyWindow.push(energy);
-    if (this.energyWindow.length > 80) this.energyWindow.shift();
-    this.surpriseCooldown = Math.max(0, this.surpriseCooldown - 100);
-    this.transitionCooldown = Math.max(0, this.transitionCooldown - 100);
+    // ── Window management (time-based, poll-rate immune) ──
+    this.energyWindow.push({ v: energy, t: now });
+    while (this.energyWindow.length > 0 && now - this.energyWindow[0].t > 12000) this.energyWindow.shift();
 
+    // Cooldowns: timestamp-based, not decrement-based
     if (energy > this.rollingPeak) this.rollingPeak = energy;
     else this.rollingPeak *= 0.999;
 
     // Diagnostic every 10s
-    this.diagTimer += 100;
-    if (this.diagTimer >= 10000) {
-      this.diagTimer = 0;
-      const r6 = this.energyWindow.slice(-6);
-      const o20 = this.energyWindow.slice(-30, -10);
-      const rA = r6.length ? (r6.reduce((a,b)=>a+b,0)/r6.length).toFixed(3) : '?';
-      const oA = o20.length ? (o20.reduce((a,b)=>a+b,0)/o20.length).toFixed(3) : '?';
-      console.log(`[detect] mode=${mode} e=${energy.toFixed(3)} recent=${rA} older=${oA} cool=${Math.round(this.transitionCooldown/1000)}s dip=${this.dipDetected} hc=${this.hardCutState} floor=${this.energyFloor.toFixed(3)} ceil=${this.energyCeiling.toFixed(3)}`);
+    if (now - this._lastDiag > 10000) {
+      this._lastDiag = now;
+      const recentSamples = this.energyWindow.filter(s => now - s.t < 600).map(s => s.v);
+      const olderSamples  = this.energyWindow.filter(s => now - s.t > 1000 && now - s.t < 3000).map(s => s.v);
+      const rA = recentSamples.length ? (recentSamples.reduce((a,b)=>a+b,0)/recentSamples.length).toFixed(3) : '?';
+      const oA = olderSamples.length  ? (olderSamples.reduce((a,b)=>a+b,0)/olderSamples.length).toFixed(3) : '?';
+      console.log(`[detect] mode=${mode} e=${energy.toFixed(3)} recent=${rA} older=${oA} surpriseCool=${Math.max(0,Math.round((this._surpriseCooldownUntil-now)/1000))}s transCool=${Math.max(0,Math.round((this._transitionCooldownUntil-now)/1000))}s dip=${this.dipDetected} hc=${this.hardCutState} floor=${this.energyFloor.toFixed(3)} ceil=${this.energyCeiling.toFixed(3)}`);
     }
 
     const result = { surprise: false, crossfade: false, hardCut: false };
-    if (this.energyWindow.length < 20 || !this.thresholds) return result;
 
-    const recent = this.energyWindow.slice(-6);
-    const older = this.energyWindow.slice(-30, -10);
-    const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
-    const olderAvg = older.length > 0 ? older.reduce((a, b) => a + b, 0) / older.length : recentAvg;
+    // Need at least 3s of history before making any decisions
+    const windowSpan = this.energyWindow.length > 1 ? now - this.energyWindow[0].t : 0;
+    if (windowSpan < 3000 || !this.thresholds) return result;
+
+    // ── Time-windowed averages (same windows as before, now time-based) ──
+    // recent = last 600ms, older = 1000-3000ms ago (mirrors old slice(-6) and slice(-30,-10) at 100ms)
+    const recentSamples = this.energyWindow.filter(s => now - s.t < 600).map(s => s.v);
+    const olderSamples  = this.energyWindow.filter(s => now - s.t > 1000 && now - s.t < 3000).map(s => s.v);
+    const veryRecentSamples = this.energyWindow.filter(s => now - s.t < 200).map(s => s.v);
+
+    if (!recentSamples.length || !olderSamples.length) return result;
+
+    const recentAvg = recentSamples.reduce((a, b) => a + b, 0) / recentSamples.length;
+    const olderAvg  = olderSamples.reduce((a, b) => a + b, 0) / olderSamples.length;
     const TH = this.thresholds;
 
     // ── Surprise (uses per-song calibrated thresholds) ──
     const STH = this.surpriseThresholds || TH;
-    if (this.surpriseCooldown <= 0 && !surpriseFired && !this.surpriseCalibrating && (Date.now() - _songStartTime) >= 60000) {
+    if (now > (this._surpriseCooldownUntil || 0) && !surpriseFired && !this.surpriseCalibrating && (now - _songStartTime) >= 60000) {
       const isIntense = recentAvg > STH.surpriseEnergy && recentAvg > olderAvg + STH.surpriseAbove;
       if (isIntense && recentAvg > this.rollingPeak * 0.8) {
         result.surprise = true;
-        this.surpriseCooldown = 30000;
+        this._surpriseCooldownUntil = now + 30000;
       }
     }
 
     // ── DJ Crossfade ──
-    if (!this.dipDetected && this.transitionCooldown <= 0) {
+    if (!this.dipDetected && now > (this._transitionCooldownUntil || 0)) {
       const drop = olderAvg - recentAvg;
       if (drop > TH.crossfadeDrop && olderAvg > TH.crossfadeBaseline) {
         this.dipDetected = true;
         this.dipEnergy = recentAvg;
         this.preDipEnergy = olderAvg;
-        this.dipTime = Date.now();
+        this.dipTime = now;
         console.log('[detect] dip — drop:', drop.toFixed(3), 'from:', olderAvg.toFixed(3));
       }
     }
     if (this.dipDetected) {
-      const elapsed = Date.now() - this.dipTime;
+      const elapsed = now - this.dipTime;
       const rise = recentAvg - this.dipEnergy;
       if (rise > TH.crossfadeRise && recentAvg > this.dipEnergy + TH.crossfadeRiseAbove && elapsed > 1750) {
         console.log('[detect] crossfade:', this.preDipEnergy.toFixed(2), '→', this.dipEnergy.toFixed(2), '→', recentAvg.toFixed(2));
         this.dipDetected = false;
-        this.transitionCooldown = 45000;
+        this._transitionCooldownUntil = now + 45000;
         this.rollingPeak = recentAvg;
         result.crossfade = true;
       }
@@ -2514,24 +2527,23 @@ const TransitionDetector = {
     }
 
     // ── Hard Cut ──
-    if (this.transitionCooldown <= 0) {
-      const vr = this.energyWindow.slice(-3);
-      const vrAvg = vr.reduce((a, b) => a + b, 0) / vr.length;
+    if (now > (this._transitionCooldownUntil || 0)) {
+      const vrAvg = veryRecentSamples.length ? veryRecentSamples.reduce((a,b)=>a+b,0)/veryRecentSamples.length : recentAvg;
       if (this.hardCutState === 0) {
         if (vrAvg < TH.hardCutSilence && olderAvg > TH.hardCutBaseline) {
           this.hardCutState = 1;
-          this.hardCutTime = Date.now();
+          this.hardCutTime = now;
         }
       } else if (this.hardCutState === 1) {
         if (vrAvg > TH.hardCutRecovery) {
           console.log('[detect] hard cut — silence then recovery');
           this.hardCutState = 0;
-          this.transitionCooldown = 45000;
+          this._transitionCooldownUntil = now + 45000;
           this.dipDetected = false;
           this.rollingPeak = vrAvg;
           result.hardCut = true;
         }
-        if (Date.now() - this.hardCutTime > 8000) this.hardCutState = 0;
+        if (now - this.hardCutTime > 8000) this.hardCutState = 0;
       }
     }
 
@@ -2554,12 +2566,12 @@ const TransitionDetector = {
 
   reset() {
     this.energyWindow = [];
-    this.surpriseCooldown = 0;
-    this.transitionCooldown = 0;
+    this._surpriseCooldownUntil = 0;
+    this._transitionCooldownUntil = 0;
     this.rollingPeak = 0;
     this.dipDetected = false;
     this.hardCutState = 0;
-    this.diagTimer = 0;
+    this._lastDiag = 0;
     this.calibrating = true;
     this.energyFloor = 1;
     this.energyCeiling = 0;
@@ -12717,8 +12729,8 @@ MusicProviders.local = {
     try {
       this._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       this._analyser = this._audioCtx.createAnalyser();
-      this._analyser.fftSize = 256;
-      this._analyser.smoothingTimeConstant = 0.8;
+      this._analyser.fftSize = 2048; // Higher resolution for clean bass bin isolation (21Hz/bin vs 172Hz/bin at 256)
+      this._analyser.smoothingTimeConstant = 0.25; // Beat detection needs sharp transients — smoothing applied manually in poll()
       this._freqData = new Uint8Array(this._analyser.frequencyBinCount);
 
       if (mode === 'mic' || mode === 'venue') {
@@ -12798,8 +12810,9 @@ MusicProviders.local = {
         // File mode — handled via _handleFile triggered by the file picker
       }
 
-      // Start analysis loop
-      this._interval = setInterval(() => this.poll(), 100);
+      // Audio analysis now runs inside the render loop (rAF-aligned) via _vizAudioPoll().
+      // No setInterval needed — poll() is called once per animation frame when this is the active provider.
+      this._rafPolling = true;
 
       // Start periodic song recognition for mic/system modes (if ACRCloud is configured)
       if ((mode === 'mic' || mode === 'venue' || mode === 'system') && SONG_RECOGNITION.acrEnabled) {
@@ -13053,8 +13066,8 @@ MusicProviders.local = {
       if (!this._audioCtx) {
         this._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         this._analyser = this._audioCtx.createAnalyser();
-        this._analyser.fftSize = 256;
-        this._analyser.smoothingTimeConstant = 0.8;
+        this._analyser.fftSize = 2048; // Higher resolution for clean bass bin isolation
+        this._analyser.smoothingTimeConstant = 0.25; // Beat detection needs sharp transients — smoothing applied manually in poll()
         this._freqData = new Uint8Array(this._analyser.frequencyBinCount);
       }
 
@@ -13115,6 +13128,7 @@ MusicProviders.local = {
     this._analyser.getByteFrequencyData(this._freqData);
 
     // Compute energy from frequency data
+    // fftSize=2048 → 1024 bins; bass = bottom 15% (bins 0-153, covering ~0-3kHz, kick/bass-heavy zone)
     const bins = this._freqData;
     let sum = 0, bassSum = 0;
     const bassEnd = Math.floor(bins.length * 0.15);
@@ -13122,26 +13136,50 @@ MusicProviders.local = {
       sum += bins[i];
       if (i < bassEnd) bassSum += bins[i];
     }
-    const energy = Math.min(1, (sum / bins.length / 255) * 2.0);
+    const rawEnergy = Math.min(1, (sum / bins.length / 255) * 2.0);
     const bass = bassEnd > 0 ? (bassSum / bassEnd / 255) : 0;
 
-    // Beat detection from bass transients
+    // ── Change 4: Asymmetric energy lerp — fast attack (0.25), slow release (0.05) ──
+    // Scenes respond within ~3 frames (~50ms) to a spike, but settle smoothly on decay.
+    // MS.energy is the raw per-poll value; SM.energy smoothing now lives here instead of render loop.
+    if (!this._smoothEnergy) this._smoothEnergy = rawEnergy;
+    const eDiff = rawEnergy - this._smoothEnergy;
+    this._smoothEnergy += eDiff * (eDiff > 0 ? 0.25 : 0.05);
+    MS.energy = this._smoothEnergy;
+
+    // ── Manual bass smoothing for transition detection (separate from beat detection) ──
+    // We want sharp bass for beat detection but smooth bass for transition/surprise detection.
+    // smoothingTimeConstant=0.25 gives us the sharp signal; we smooth manually for transition use.
+    if (!this._smoothBass) this._smoothBass = bass;
+    this._smoothBass += (bass - this._smoothBass) * 0.15;
+
+    // ── Change 3 + Change 5: Beat detection — direct triggerBeat() call on transient ──
+    // With smoothingTimeConstant=0.25, raw bass spikes sharply on kick drum attacks.
+    // Threshold lowered from 0.15→0.08 to match the less-smoothed signal.
+    // Cooldown is timestamp-based (ms) so it's immune to interval rate changes.
     if (!this._prevBass) this._prevBass = 0;
-    if (!this._beatCooldown) this._beatCooldown = 0;
-    this._beatCooldown = Math.max(0, this._beatCooldown - 100);
-    if (bass - this._prevBass > 0.15 && this._beatCooldown <= 0 && bass > 0.3) {
-      this._beatCooldown = 250;
-      if (!this._lastBeatTime) this._lastBeatTime = Date.now();
-      const now = Date.now();
+    if (!this._beatCooldownUntil) this._beatCooldownUntil = 0;
+    const now = Date.now();
+    const bassRise = bass - this._prevBass;
+    if (bassRise > 0.08 && now > this._beatCooldownUntil && bass > 0.25) {
+      // Minimum cooldown scales with estimated BPM — prevents double-trigger on sustain
+      const minCooldown = Math.max(180, MS.beatInterval * 0.6);
+      this._beatCooldownUntil = now + minCooldown;
+
+      // Update BPM estimate from measured inter-beat interval
+      if (!this._lastBeatTime) this._lastBeatTime = now;
       const interval = now - this._lastBeatTime;
       if (interval > 200 && interval < 2000) {
         MS.beatInterval = MS.beatInterval * 0.7 + interval * 0.3;
       }
       this._lastBeatTime = now;
+
+      // ── Fire beat reaction immediately from audio, not from render loop timer ──
+      // Suppress render-loop backup beat for the next full beatInterval to prevent double-fire.
+      MS.lastBeat = now;
+      triggerBeat();
     }
     this._prevBass = bass;
-
-    MS.energy = energy;
 
     if (this._mode === 'file' && this._audioEl) {
       MS.progress = (this._audioEl.currentTime || 0) * 1000;
@@ -13164,7 +13202,7 @@ MusicProviders.local = {
     // In DJ mode, skip all auto-transitions and auto-surprises — controller manages these
     if (typeof DJMode !== 'undefined' && DJMode.role === 'display') return;
 
-    const detection = TransitionDetector.update(energy, this._mode);
+    const detection = TransitionDetector.update(rawEnergy, this._mode);
 
     if (detection.surprise) {
       setTimeout(fireSurprise, 200);
@@ -13194,6 +13232,12 @@ MusicProviders.local = {
     if (this._audioCtx) { try { this._audioCtx.close(); } catch (e) { /* ok */ } this._audioCtx = null; }
     this._analyser = null;
     this._freqData = null;
+    // Reset beat detection state
+    this._prevBass = 0;
+    this._beatCooldownUntil = 0;
+    this._lastBeatTime = 0;
+    this._smoothEnergy = 0;
+    this._smoothBass = 0;
   },
 
   destroy() {
@@ -13229,6 +13273,8 @@ async function startProvider(key) {
   if (ok) {
     activeProvider = provider;
     ls('lastProvider', key);
+    // Acquire wake lock — keep screen on while visualizer is playing
+    _wakeLock.acquire();
     // Show main UI
     hideLoading();
     document.getElementById('login').style.display = 'none';
@@ -13248,6 +13294,8 @@ function stopProvider() {
     activeProvider.destroy();
     activeProvider = null;
   }
+  // Release wake lock — allow screen sleep once visualizer stops
+  _wakeLock.release();
   token = null;
   lastTid = null;
   appliedTid = null;
@@ -13319,15 +13367,116 @@ function drawBeatFX(){
   beatFX.speedBoost*=0.88;
 }
 
+// ═══════════════════════════════════════════════════════════
+// ══ PHASE 2: rAF-ALIGNED AUDIO POLLING + WAKE LOCK + HEARTBEAT ══
+// ═══════════════════════════════════════════════════════════
+
+// ── rAF-aligned audio poll ──
+// Called once per render frame when local audio is the active provider.
+// 16ms minimum guard prevents double-polls on 120fps displays.
+let _lastAudioPollTime = 0;
+function _vizAudioPoll() {
+  if (!activeProvider || activeProvider !== MusicProviders.local) return;
+  if (!activeProvider._rafPolling || !activeProvider._analyser) return;
+  const now = performance.now();
+  if (now - _lastAudioPollTime < 16) return; // ~60fps cap — immune to 120fps displays
+  _lastAudioPollTime = now;
+  activeProvider.poll();
+}
+
+// ── Wake Lock system ──
+// Prevents OS screen sleep/screensaver while the visualizer is actively playing.
+// Uses the Screen Wake Lock API (Chrome 84+). Silently does nothing on unsupported browsers.
+// Three-layer defence: acquire on start, re-acquire on visibility change, re-acquire on fullscreen change.
+const _wakeLock = {
+  _lock: null,
+  _enabled: false,
+
+  async acquire() {
+    if (!('wakeLock' in navigator)) return; // Not supported — fail silently
+    try {
+      this._lock = await navigator.wakeLock.request('screen');
+      this._enabled = true;
+      this._lock.addEventListener('release', () => {
+        // Lock was released externally (tab hidden, OS override, etc.)
+        this._lock = null;
+        this._enabled = false;
+        console.log('[wakeLock] released by system');
+      });
+      console.log('[wakeLock] acquired — screen will stay on');
+    } catch (e) {
+      // Acquisition can fail if tab isn't visible yet — _reacquire handles this
+      console.log('[wakeLock] acquire failed (will retry on focus):', e.message);
+    }
+  },
+
+  release() {
+    if (this._lock) {
+      this._lock.release();
+      this._lock = null;
+      this._enabled = false;
+      console.log('[wakeLock] released — screen sleep restored');
+    }
+  },
+
+  async _reacquire() {
+    // Called when tab regains visibility — re-acquire if provider is active
+    if (activeProvider && !this._lock) {
+      console.log('[wakeLock] re-acquiring after visibility restore...');
+      await this.acquire();
+    }
+  }
+};
+
+// Re-acquire wake lock when tab becomes visible again (e.g. user alt-tabs back)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    _wakeLock._reacquire();
+  }
+});
+
+// Re-acquire on fullscreen change (entering fullscreen counts as a visibility event on some browsers)
+document.addEventListener('fullscreenchange', () => {
+  if (document.fullscreenElement && activeProvider) {
+    _wakeLock._reacquire();
+  }
+});
+
+// ── Render loop heartbeat ──
+// Monitors whether the render loop is still running. If rAF has been throttled
+// (tab backgrounded briefly, OS intervention) this kicks it back awake.
+// Fires every 500ms — lightweight, just a timestamp check + one rAF call if stalled.
+let _lastRenderTime = 0;
+const _heartbeatInterval = setInterval(() => {
+  if (!token || !activeProvider) return; // Only active when visualizer is running
+  const staleMs = performance.now() - _lastRenderTime;
+  if (staleMs > 500) {
+    // Render loop has been quiet for 500ms+ — nudge it back awake
+    console.log('[heartbeat] render loop stalled for', Math.round(staleMs), 'ms — restarting');
+    requestAnimationFrame(render);
+  }
+}, 500);
+
 function render(t){
   requestAnimationFrame(render);
+  _lastRenderTime = performance.now(); // Heartbeat timestamp — proves loop is alive
   if(!token)return;
+  // ── rAF-aligned audio poll — freshest possible FFT data every frame ──
+  _vizAudioPoll();
   const w=W(),h=H();
   const _djBeatMult = (typeof DJMode !== 'undefined' && DJMode.role === 'display') ? DJMode._beatSensitivity : 1.0;
-  SM.energy+=(Math.min(1, MS.energy * _djBeatMult)-SM.energy)*0.05;
+  // SM.energy: for local audio, asymmetric lerp now happens in poll() and MS.energy is already smoothed.
+  // For Spotify/Apple Music (no poll-based smoothing), we still apply a lerp here — but faster (0.15).
+  // DJ beat sensitivity multiplier applied at the SM layer so it affects visual intensity, not detection.
+  const _targetE = Math.min(1, MS.energy * _djBeatMult);
+  const _eDiff = _targetE - SM.energy;
+  SM.energy += _eDiff * (activeProvider === MusicProviders.local ? 1.0 : (_eDiff > 0 ? 0.15 : 0.05));
   SM.beatPulse*=0.87;
   updateDJSigMorph(); // Update DJ signature morph animation state
-  if(t-MS.lastBeat>MS.beatInterval){MS.lastBeat=t;triggerBeat();}
+  // Backup beat timer — fires only when local audio hasn't detected a beat recently (e.g. quiet passage,
+  // or Spotify/Apple Music mode which has no audio analysis). Uses 1.5x interval to avoid double-fire
+  // after a direct triggerBeat() call from poll().
+  if(t-MS.lastBeat>MS.beatInterval*1.5){MS.lastBeat=t;triggerBeat();}
   if(MS.duration>0){songProg=Math.min(1,(Date.now()-MS.analysisStart)/MS.duration);progMult=0.55+songProg*0.7;}
   document.getElementById('pgBar').style.width=(songProg*100)+'%';
   const tc=h2r(pc(Math.floor(t/3000)%4));document.getElementById('cur').style.background=`rgb(${tc.r},${tc.g},${tc.b})`;
@@ -14053,8 +14202,8 @@ const DJMode = {
     try {
       provider._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       provider._analyser = provider._audioCtx.createAnalyser();
-      provider._analyser.fftSize = 256;
-      provider._analyser.smoothingTimeConstant = 0.8;
+      provider._analyser.fftSize = 2048; // Higher resolution for clean bass bin isolation
+      provider._analyser.smoothingTimeConstant = 0.25; // Beat detection needs sharp transients — smoothing applied manually in poll()
       provider._freqData = new Uint8Array(provider._analyser.frequencyBinCount);
 
       if (audioMode === 'system') {
@@ -14209,8 +14358,11 @@ const DJMode = {
     progMult = 0.55 + songProg * 0.7;
     MS.duration = 0;
 
-    provider._interval = setInterval(() => provider.poll(), 100);
+    // Audio analysis runs in the render loop (rAF-aligned) — no setInterval needed.
+    provider._rafPolling = true;
     activeProvider = provider;
+    // Acquire wake lock — venue display must stay on all night
+    _wakeLock.acquire();
     TransitionDetector.reset();
     TransitionDetector.startCalibration();
 
@@ -15529,7 +15681,7 @@ function _showVenueSignalCheck(deviceId, deviceLabel, parentOverlay, onConfirm) 
       _checkCtx = new (window.AudioContext || window.webkitAudioContext)();
       _checkAnalyser = _checkCtx.createAnalyser();
       _checkAnalyser.fftSize = 256;
-      _checkAnalyser.smoothingTimeConstant = 0.8;
+      _checkAnalyser.smoothingTimeConstant = 0.25; // Beat detection needs sharp transients — smoothing applied manually in poll()
       const freqData = new Uint8Array(_checkAnalyser.frequencyBinCount);
 
       const audioConstraints = deviceId
