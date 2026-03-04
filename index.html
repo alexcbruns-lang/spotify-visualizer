@@ -4942,8 +4942,8 @@ function drawNeonCathedral(t){
   }
 
   // Centerpiece replaces rose window — large, at top of church
+  const roseY=roofY+h*0.16;
   if(THEME.centerpiece){
-    const roseY=roofY+h*0.16;
     const cpSz2=Math.min(w,h)*(0.12+beat*0.02+(C.doorsOpen?0.04:0));
     cpRot+=0.012;cpPh+=0.013;
     const cpGlow=x0.createRadialGradient(cx,roseY,0,cx,roseY,cpSz2*3);
@@ -4995,29 +4995,6 @@ function drawNeonCathedral(t){
   for(let db=0;db<3;db++){
     const dby=groundY-doorH*0.2-db*doorH*0.22;
     x0.beginPath();x0.moveTo(dlx+3,dby);x0.lineTo(drx-3,dby);x0.stroke();
-  }
-
-  // Church doors open surprise — light flooding out
-  if(C.doorsOpen){
-    const dAlpha=Math.min(1,(30000-C.doorsOpenTimer)/800)*0.7;
-    // Bright light from inside
-    const doorGrad=x0.createRadialGradient(cx,groundY-doorH*0.4,0,cx,groundY-doorH*0.4,h*0.6);
-    doorGrad.addColorStop(0,rgba(pc(Math.floor(t*0.008)%4),dAlpha*0.5));
-    doorGrad.addColorStop(0.3,rgba(pc((Math.floor(t*0.008)+1)%4),dAlpha*0.25));
-    doorGrad.addColorStop(1,'transparent');
-    x0.fillStyle=doorGrad;x0.fillRect(0,0,w,h);
-    // Stained glass color beams radiating from doors
-    x0.save();x0.translate(cx,groundY-doorH*0.4);
-    x0.globalCompositeOperation='screen';
-    for(let b=0;b<14;b++){
-      const ba=b/14*Math.PI*2+t*0.001;
-      const bLen=h*0.45*(0.5+beat*0.5);
-      x0.strokeStyle=rgba(pc(b%4),dAlpha*(0.25+beat*0.3));
-      x0.lineWidth=6+beat*5;x0.shadowBlur=12+beat*8;x0.shadowColor=pc(b%4);
-      x0.beginPath();x0.moveTo(0,0);
-      x0.lineTo(Math.cos(ba)*bLen,Math.sin(ba)*bLen);x0.stroke();
-    }
-    x0.globalCompositeOperation='source-over';x0.restore();
   }
 
   // Ground line
