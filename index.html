@@ -5625,9 +5625,9 @@ function drawClassicArcade(t){
       bezel:{color:'rgba(20,15,8,1)',scanlines:true}};
   }
   const A=SD.arcade;
-  if(A.boss&&A.boss.timer>0)A.boss.timer-=16;
+  if(A.boss&&A.boss.timer>0){A.boss.timer-=16;A.bossAlpha=Math.min(1,A.bossAlpha+0.015);}
   else if(A.boss&&A.boss.timer<=0&&A.bossAlpha>0){A.bossAlpha=Math.max(0,A.bossAlpha-0.012);if(A.bossAlpha===0)A.boss=null;}
-  if(A.superPac&&A.superPac.timer>0)A.superPac.timer-=16;
+  if(A.superPac&&A.superPac.timer>0){A.superPac.timer-=16;A.superPacAlpha=Math.min(1,A.superPacAlpha+0.015);}
   else if(A.superPac&&A.superPac.timer<=0&&A.superPacAlpha>0){A.superPacAlpha=Math.max(0,A.superPacAlpha-0.015);if(A.superPacAlpha===0)A.superPac=null;}
   if(A.powerUpTimer>0){A.powerUpTimer-=16;if(A.powerUpTimer<=0)A.powerUp=false;}
   if(A.deathBeamTimer>0)A.deathBeamTimer-=16;
@@ -5703,7 +5703,7 @@ function drawClassicArcade(t){
     for(const p of ex.particles){p.x+=p.vx;p.y+=p.vy;p.vy+=0.2;p.life-=0.03;if(p.life>0){softGlow(x0,p.x,p.y,p.r*p.life,pc(p.ci),p.life);x0.fillStyle=rgba(pc(p.ci),p.life*0.95);x0.beginPath();x0.arc(p.x,p.y,p.r*p.life,0,Math.PI*2);x0.fill();}}}
   x0.restore();
   // BOSS SURPRISE — Galaga mothership
-  if(A.boss&&A.bossAlpha>0){if(A.boss.timer>0)A.bossAlpha=Math.min(1,A.bossAlpha+0.015);
+  if(A.boss&&A.bossAlpha>0){
     const alpha=A.bossAlpha;const bossX=cx+Math.sin(t*0.003)*w*0.2,bossY2=h*0.22,bW2=w*0.18,bH2=h*0.1;
     if(!A.bossExploding){
       x0.save();x0.globalAlpha=alpha;
@@ -5759,7 +5759,7 @@ function drawClassicArcade(t){
       const sS=Math.min(w,h)*0.065;x0.globalAlpha=0.85;x0.shadowBlur=12;x0.shadowColor=pc(0);drawCPMini(x0,THEME.centerpiece,A.shipX,shipY,sS,0);x0.globalAlpha=1;x0.shadowBlur=0;
       A.shipFireTimer+=16;if(A.shipFireTimer>200){A.shipFireTimer=0;A.shipBullets.push({x:A.shipX,y:shipY-sS*0.5,ci:Math.floor(Math.random()*4)});}}}
   // SUPER PAC SURPRISE — giant, fast chase
-  if(A.superPac&&A.superPacAlpha>0){if(A.superPac.timer>0)A.superPacAlpha=Math.min(1,A.superPacAlpha+0.015);
+  if(A.superPac&&A.superPacAlpha>0){
     const sp=A.superPac;sp.mouthA+=0.06*(1+beat*0.5);if(sp.mouthA>0.5)sp.mouthA=0;
     // Chase the ship — fast, close calls
     if(THEME.centerpiece&&!A.cpDestroyed){const dx=A.shipX-sp.x,dy=shipY-sp.y,dist=Math.hypot(dx,dy)||1;
