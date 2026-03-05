@@ -5706,15 +5706,26 @@ function drawClassicArcade(t){
   if(A.boss&&A.bossAlpha>0){
     const alpha=A.bossAlpha;const bossX=cx+Math.sin(t*0.003)*w*0.2,bossY2=h*0.22,bW2=w*0.18,bH2=h*0.1;
     if(!A.bossExploding){
-      x0.save();x0.globalAlpha=alpha;
-      x0.fillStyle=rgba(pc(0),0.8);x0.shadowBlur=20+beat*15;x0.shadowColor=pc(0);
-      x0.beginPath();x0.moveTo(bossX,bossY2-bH2);x0.bezierCurveTo(bossX+bW2,bossY2-bH2*0.5,bossX+bW2,bossY2+bH2*0.5,bossX,bossY2+bH2*0.3);x0.bezierCurveTo(bossX-bW2,bossY2+bH2*0.5,bossX-bW2,bossY2-bH2*0.5,bossX,bossY2-bH2);x0.fill();
-      x0.fillStyle=rgba(pc(1),0.6);x0.beginPath();x0.moveTo(bossX-bW2*0.6,bossY2);x0.lineTo(bossX-bW2*1.2,bossY2+bH2*0.6);x0.lineTo(bossX-bW2*0.4,bossY2+bH2*0.3);x0.closePath();x0.fill();
-      x0.beginPath();x0.moveTo(bossX+bW2*0.6,bossY2);x0.lineTo(bossX+bW2*1.2,bossY2+bH2*0.6);x0.lineTo(bossX+bW2*0.4,bossY2+bH2*0.3);x0.closePath();x0.fill();
-      x0.fillStyle='rgba(255,255,0,0.9)';x0.shadowBlur=12;x0.shadowColor='rgba(255,255,0,0.8)';
-      x0.beginPath();x0.arc(bossX-bW2*0.25,bossY2-bH2*0.2,bW2*0.08,0,Math.PI*2);x0.fill();x0.beginPath();x0.arc(bossX+bW2*0.25,bossY2-bH2*0.2,bW2*0.08,0,Math.PI*2);x0.fill();x0.shadowBlur=0;
-      // Damage flash on V2 when low HP
-      if(A.boss.variant===2&&A.bossHP<50){x0.fillStyle=rgba(pc(0),0.35*Math.abs(Math.sin(t*0.08)));x0.beginPath();x0.ellipse(bossX,bossY2,bW2,bH2,0,0,Math.PI*2);x0.fill();}
+      const bCi=Math.floor(t*0.006)%4;const bStroke=beat>0.5?1:0;
+      const bGlow=30+beat*35;const bPulse=1+beat*0.12;
+      x0.save();x0.globalAlpha=alpha*(0.85+beat*0.15);
+      // Body — palette-cycling fill with heavy beat glow
+      x0.fillStyle=rgba(pc(bCi),0.9+beat*0.1);x0.shadowBlur=bGlow;x0.shadowColor=pc(bCi);
+      x0.beginPath();x0.moveTo(bossX,bossY2-bH2*bPulse);x0.bezierCurveTo(bossX+bW2*bPulse,bossY2-bH2*0.5,bossX+bW2*bPulse,bossY2+bH2*0.5,bossX,bossY2+bH2*0.3*bPulse);x0.bezierCurveTo(bossX-bW2*bPulse,bossY2+bH2*0.5,bossX-bW2*bPulse,bossY2-bH2*0.5,bossX,bossY2-bH2*bPulse);x0.fill();
+      // Outline stroke on beat
+      if(bStroke){x0.strokeStyle=rgba(pc((bCi+2)%4),0.9);x0.lineWidth=3+beat*4;x0.shadowBlur=bGlow*1.4;x0.shadowColor=pc((bCi+2)%4);
+        x0.beginPath();x0.moveTo(bossX,bossY2-bH2*bPulse);x0.bezierCurveTo(bossX+bW2*bPulse,bossY2-bH2*0.5,bossX+bW2*bPulse,bossY2+bH2*0.5,bossX,bossY2+bH2*0.3*bPulse);x0.bezierCurveTo(bossX-bW2*bPulse,bossY2+bH2*0.5,bossX-bW2*bPulse,bossY2-bH2*0.5,bossX,bossY2-bH2*bPulse);x0.stroke();}
+      // Wings — contrasting palette color
+      x0.fillStyle=rgba(pc((bCi+1)%4),0.8+beat*0.2);x0.shadowBlur=bGlow*0.8;x0.shadowColor=pc((bCi+1)%4);
+      x0.beginPath();x0.moveTo(bossX-bW2*0.6,bossY2);x0.lineTo(bossX-bW2*1.3*bPulse,bossY2+bH2*0.7);x0.lineTo(bossX-bW2*0.4,bossY2+bH2*0.3);x0.closePath();x0.fill();
+      x0.beginPath();x0.moveTo(bossX+bW2*0.6,bossY2);x0.lineTo(bossX+bW2*1.3*bPulse,bossY2+bH2*0.7);x0.lineTo(bossX+bW2*0.4,bossY2+bH2*0.3);x0.closePath();x0.fill();
+      // Eyes — bright white/yellow strobe
+      const eyeBr=0.7+beat*0.3;const eyeR=bW2*0.09+beat*bW2*0.04;
+      x0.fillStyle=`rgba(255,255,${Math.floor(100+beat*155)},${eyeBr})`;x0.shadowBlur=15+beat*20;x0.shadowColor='rgba(255,255,100,1)';
+      x0.beginPath();x0.arc(bossX-bW2*0.25,bossY2-bH2*0.2,eyeR,0,Math.PI*2);x0.fill();
+      x0.beginPath();x0.arc(bossX+bW2*0.25,bossY2-bH2*0.2,eyeR,0,Math.PI*2);x0.fill();x0.shadowBlur=0;
+      // Damage flash on V2 when low HP — rapid red strobe
+      if(A.boss.variant===2&&A.bossHP<50){const dmg=0.5+0.5*Math.abs(Math.sin(t*0.15+beat*3));x0.fillStyle=`rgba(255,0,0,${dmg*0.5})`;x0.shadowBlur=20*dmg;x0.shadowColor='rgba(255,0,0,0.8)';x0.beginPath();x0.ellipse(bossX,bossY2,bW2*bPulse,bH2*bPulse,0,0,Math.PI*2);x0.fill();x0.shadowBlur=0;}
       x0.restore();
       // V1: death beam locks onto ship after 15s
       if(A.boss.variant===1&&A.boss.timer<5000&&A.boss.timer>0&&!A.cpDestroyed){
@@ -5754,10 +5765,16 @@ function drawClassicArcade(t){
       x0.save();x0.globalAlpha=(1-ep)*0.8;x0.strokeStyle='rgba(255,220,100,0.9)';x0.lineWidth=4;x0.shadowBlur=20;x0.shadowColor='rgba(255,200,0,0.8)';
       x0.beginPath();x0.arc(bXe,bYe,ep*w*0.35,0,Math.PI*2);x0.stroke();x0.restore();
     }
-    // Ship during boss fight
+    // Ship during boss fight (hidden after CP destroyed in V1)
     if(THEME.centerpiece&&!A.cpDestroyed){A.shipX+=A.shipDir*(2+energy+beat);if(A.shipX>scrX+scrW-30)A.shipDir=-1;if(A.shipX<scrX+30)A.shipDir=1;
       const sS=Math.min(w,h)*0.065;x0.globalAlpha=0.85;x0.shadowBlur=12;x0.shadowColor=pc(0);drawCPMini(x0,THEME.centerpiece,A.shipX,shipY,sS,0);x0.globalAlpha=1;x0.shadowBlur=0;
       A.shipFireTimer+=16;if(A.shipFireTimer>200){A.shipFireTimer=0;A.shipBullets.push({x:A.shipX,y:shipY-sS*0.5,ci:Math.floor(Math.random()*4)});}}}
+  // V2 WINNER: keep drawing CP even after boss explodes (bossAlpha=0 hides boss block)
+  if(THEME.centerpiece&&!A.cpDestroyed&&A.winnerTimer<=0&&A.bossExploding){
+    A.shipX+=A.shipDir*(2+energy+beat);if(A.shipX>scrX+scrW-30)A.shipDir=-1;if(A.shipX<scrX+30)A.shipDir=1;
+    const sW=Math.min(w,h)*0.065;const winPulse=1+beat*0.2;
+    x0.globalAlpha=0.9+beat*0.1;x0.shadowBlur=(16+beat*12)*winPulse;x0.shadowColor=pc(Math.floor(t*0.008)%4);
+    drawCPMini(x0,THEME.centerpiece,A.shipX,shipY,sW*winPulse,0);x0.globalAlpha=1;x0.shadowBlur=0;}
   // SUPER PAC SURPRISE — giant, fast chase
   if(A.superPac&&A.superPacAlpha>0){
     const sp=A.superPac;sp.mouthA+=0.06*(1+beat*0.5);if(sp.mouthA>0.5)sp.mouthA=0;
@@ -5782,13 +5799,23 @@ function drawClassicArcade(t){
         surpriseTimeout(()=>{if(SD.arcade){SD.arcade.gameOverTimer=10000;}flash('rgba(255,0,0,0.7)',400);},1200);
       }
       if(!A.cpDestroyed){const sS2=Math.min(w,h)*0.065;x0.globalAlpha=A.superPacAlpha*0.85;x0.shadowBlur=15;x0.shadowColor=pc(0);drawCPMini(x0,THEME.centerpiece,A.shipX,shipY,sS2,0);x0.globalAlpha=1;x0.shadowBlur=0;}}
-    // Giant Pac-Man — victory chomp animation after catch
-    x0.save();x0.globalAlpha=A.superPacAlpha;const pr=Math.min(w,h)*0.18,mouth2=A.cpDestroyed?0.7:sp.mouthA*0.6;
-    x0.fillStyle=rgba(pc(3),0.95);x0.shadowBlur=25+beat*15;x0.shadowColor=pc(3);
-    x0.beginPath();x0.moveTo(sp.x,sp.y);x0.arc(sp.x,sp.y,pr*(1+beat*0.05),mouth2*(sp.dir>0?1:-1),(Math.PI*2-mouth2)*(sp.dir>0?1:-1));x0.closePath();x0.fill();
-    x0.fillStyle='rgba(0,0,0,0.9)';x0.shadowBlur=0;x0.beginPath();x0.arc(sp.x+sp.dir*pr*0.3,sp.y-pr*0.35,pr*0.1,0,Math.PI*2);x0.fill();
+    // Giant Pac-Man — vibrant, palette-cycling, beat-strobing
+    const pCi=Math.floor(t*0.007+2)%4;const pGlow=35+beat*40;const pPulse=1+beat*0.1;
+    x0.save();x0.globalAlpha=A.superPacAlpha*(0.88+beat*0.12);const pr=Math.min(w,h)*0.18*pPulse,mouth2=A.cpDestroyed?0.75:sp.mouthA*0.65;
+    // Outer glow ring on beat
+    if(beat>0.4){x0.fillStyle=rgba(pc((pCi+2)%4),beat*0.35);x0.shadowBlur=0;
+      x0.beginPath();x0.arc(sp.x,sp.y,pr*1.18,0,Math.PI*2);x0.fill();}
+    // Body — cycling palette color with heavy glow
+    x0.fillStyle=rgba(pc(pCi),0.95+beat*0.05);x0.shadowBlur=pGlow;x0.shadowColor=pc(pCi);
+    x0.beginPath();x0.moveTo(sp.x,sp.y);x0.arc(sp.x,sp.y,pr,mouth2*(sp.dir>0?1:-1),(Math.PI*2-mouth2)*(sp.dir>0?1:-1));x0.closePath();x0.fill();
+    // Rim stroke on beat for extra pop
+    if(beat>0.5){x0.strokeStyle=rgba(pc((pCi+1)%4),beat*0.8);x0.lineWidth=2+beat*5;x0.shadowBlur=pGlow*1.2;x0.shadowColor=pc((pCi+1)%4);
+      x0.beginPath();x0.moveTo(sp.x,sp.y);x0.arc(sp.x,sp.y,pr,mouth2*(sp.dir>0?1:-1),(Math.PI*2-mouth2)*(sp.dir>0?1:-1));x0.closePath();x0.stroke();}
+    // Eye
+    x0.fillStyle='rgba(0,0,0,0.95)';x0.shadowBlur=0;x0.beginPath();x0.arc(sp.x+sp.dir*pr*0.28,sp.y-pr*0.32,pr*0.09+beat*pr*0.02,0,Math.PI*2);x0.fill();
     x0.shadowBlur=0;x0.restore();
-    if(Math.random()<0.4)A.powerUpParticles.push({x:sp.x,y:sp.y,vx:(Math.random()-0.5)*8,vy:(Math.random()-0.5)*8,life:0.7,ci:3});}
+    // Particle trail — multi-color
+    if(Math.random()<0.5+beat*0.3)A.powerUpParticles.push({x:sp.x,y:sp.y,vx:(Math.random()-0.5)*10,vy:(Math.random()-0.5)*10,life:0.8+beat*0.2,ci:Math.floor(Math.random()*4)});}
   // Particle trail
   for(let i=A.powerUpParticles.length-1;i>=0;i--){const pp=A.powerUpParticles[i];pp.x+=pp.vx;pp.y+=pp.vy;pp.life-=0.04;if(pp.life<=0){A.powerUpParticles.splice(i,1);continue;}
     x0.fillStyle=rgba(pc(pp.ci),pp.life*0.8);x0.shadowBlur=8;x0.shadowColor=pc(pp.ci);x0.beginPath();x0.arc(pp.x,pp.y,4*pp.life,0,Math.PI*2);x0.fill();x0.shadowBlur=0;}
@@ -9147,6 +9174,7 @@ function drawEgyptianTomb(t){
   for(const s of EG.sarcophagi){
     if(superM&&!s.mummyActive&&Math.random()<0.003){s.mummyActive=true;s.open=true;}
     if(s.open)s.openAngle=Math.min(Math.PI*0.7,s.openAngle+0.02);
+    else s.openAngle=Math.max(0,s.openAngle-0.025); // lid closes when deactivated
     s.beatPulse=beat;s.outlineTimer+=0.03+beat*0.05;
     s.outlineCi=Math.floor(s.outlineTimer+s.ci)%4;
     const sx=s.x,sy=h*0.82-sarcH;const strobeFactor=0.7+Math.sin(s.outlineTimer*4)*0.3+beat*0.3;
@@ -11555,6 +11583,11 @@ function clearSurpriseState() {
     SD.egypt.superMummies = false; SD.egypt.superMummiesTimer = 0;
     SD.egypt.superFlames = false; SD.egypt.superFlamesTimer = 0;
     SD.egypt.superHiero = false; SD.egypt.superHieroTimer = 0;
+    // Close all sarcophagus lids and dismiss mummies
+    if (SD.egypt.sarcophagi) {
+      SD.egypt.sarcophagi.forEach(s => { s.open = false; s.mummyActive = false; });
+    }
+    if (SD.egypt.mummies) SD.egypt.mummies.forEach(m => { m.alive = false; });
   }
 }
 
@@ -14458,7 +14491,7 @@ const DJMode = {
   // ── DISPLAY MODE (kiosk) ──
   // ════════════════════════════════════════
   async startDisplay(audioMode) {
-    hideLoading();
+    // Loading overlay stays visible until audio is confirmed + room overlay appears
     this.role = 'display';
     const code = this.generateRoomCode();
 
