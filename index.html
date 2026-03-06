@@ -514,8 +514,8 @@ function resize() {
   [c0, c1, c2, c3].forEach(c => { c.width = innerWidth; c.height = innerHeight; });
   _vignetteCache = null; // invalidate cached vignette
 }
-resize();
 let _vignetteCache = null;
+resize();
 
 // ── Cursor ──
 const cur = document.getElementById('cur');
