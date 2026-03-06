@@ -13860,11 +13860,11 @@ if (localBtn) localBtn.addEventListener('click', () => { showLoading('INITIALIZI
     lp.style.display = 'none';
     return;
   }
-  // Also skip if there's a saved Spotify token or user has visited before
-  try { if (localStorage.getItem('at') || localStorage.getItem('vizarcade_visited')) { lp.style.display = 'none'; return; } } catch(e) {}
+  // Skip if there's a saved Spotify token (real returning session) — but NOT just a visit flag,
+  // since that caused the landing page to permanently disappear after first visit
+  try { if (localStorage.getItem('at')) { lp.style.display = 'none'; return; } } catch(e) {}
 
   function dismissLanding() {
-    try { localStorage.setItem('vizarcade_visited', '1'); } catch(e) {}
     lp.style.transition = 'opacity 0.4s ease';
     lp.style.opacity = '0';
     setTimeout(() => { lp.style.display = 'none'; }, 400);
@@ -13883,11 +13883,12 @@ if (localBtn) localBtn.addEventListener('click', () => { showLoading('INITIALIZI
   lpObs.observe(loginEl, { attributes: true, attributeFilter: ['style'] });
 
   // Intersection observer for scroll-triggered card animations
+  // root: lp is required — cards scroll inside a fixed container, not the document viewport
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(e => {
       if (e.isIntersecting) e.target.classList.add('visible');
     });
-  }, { threshold: 0.15 });
+  }, { root: lp, threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
   document.querySelectorAll('.lp-card, .lp-bottom').forEach(el => observer.observe(el));
 
   // Hide scroll hint once user scrolls
